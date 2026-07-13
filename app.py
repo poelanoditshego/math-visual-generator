@@ -4,6 +4,7 @@ from generators.cubic import create_cubic_graph
 from generators.exponential import create_exponential_graph
 from generators.hyperbola import create_hyperbola_graph
 from generators.linear import create_linear_graph
+from generators.logarithmic import create_logarithmic_graph
 from generators.mixed import create_mixed_graph
 from generators.quadratic import create_quadratic_graph
 from models.graph_settings import GraphSettings
@@ -16,12 +17,20 @@ st.set_page_config(
 
 st.title("Math Visual Generator")
 st.write(
-    "Generate customised linear, quadratic, mixed, exponential, hyperbola, and cubic graphs."
+    "Generate customised linear, quadratic, mixed, exponential, hyperbola, cubic, and logarithmic graphs."
 )
 
 graph_type = st.selectbox(
     "Choose a graph type",
-    ["Linear", "Quadratic", "Mixed", "Exponential", "Hyperbola", "Cubic"],
+    [
+        "Linear",
+        "Quadratic",
+        "Mixed",
+        "Exponential",
+        "Hyperbola",
+        "Cubic",
+        "Logarithmic",
+    ],
 )
 
 if graph_type == "Mixed":
@@ -44,8 +53,10 @@ else:
         default_equation = "2**x"
     elif graph_type == "Hyperbola":
         default_equation = "1/x"
-    else:
+    elif graph_type == "Cubic":
         default_equation = "x**3 - 4*x"
+    else:
+        default_equation = "log(x)"
 
     equation = st.text_input(
         "Enter the expression",
@@ -373,6 +384,19 @@ elif graph_type == "Cubic":
         value=True,
     )
 
+elif graph_type == "Logarithmic":
+    st.subheader("Logarithmic graph options")
+
+    show_vertical_asymptote = st.checkbox(
+        "Show vertical asymptote",
+        value=True,
+    )
+
+    show_asymptote_labels = st.checkbox(
+        "Show asymptote labels",
+        value=True,
+    )
+
 
 st.subheader("Additional coordinates")
 
@@ -416,8 +440,11 @@ elif graph_type == "Exponential":
 elif graph_type == "Hyperbola":
     default_output_name = "hyperbola_graph.png"
 
-else:
+elif graph_type == "Cubic":
     default_output_name = "cubic_graph.png"
+
+else:
+    default_output_name = "logarithmic_graph.png"
 
 output_name = st.text_input(
     "Output filename",
@@ -551,6 +578,12 @@ if st.button("Generate Graph", type="primary"):
 
             elif graph_type == "Cubic":
                 create_cubic_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
+            elif graph_type == "Logarithmic":
+                create_logarithmic_graph(
                     equation=equation,
                     settings=settings,
                 )

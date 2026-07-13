@@ -25,21 +25,23 @@ GRAPH_LABEL_STYLES = (
     "No graph label",
 )
 
-_SAFE_ARITHMETIC_EXPRESSION = re.compile(r"[0-9x+\-*/().\s]+")
+_SAFE_EXPRESSION = re.compile(r"[0-9A-Za-z_+\-*/(),.\s]+")
 
 
 def parse_arithmetic_expression(
     equation: str,
     graph_name: str,
     example: str,
+    allowed_functions: dict[str, object] | None = None,
 ) -> tuple[sp.Symbol, sp.Expr]:
     """Safely parse a one-variable arithmetic expression for a generator."""
 
     if not isinstance(equation, str) or not equation.strip():
         raise ValueError(f"Enter a {graph_name.lower()} expression such as {example}.")
 
+    functions = allowed_functions or {}
     identifiers = set(re.findall(r"[A-Za-z_]\w*", equation))
-    unsupported_identifiers = identifiers - {"x"}
+    unsupported_identifiers = identifiers - {"x", *functions}
     if unsupported_identifiers:
         names = ", ".join(sorted(unsupported_identifiers))
         raise ValueError(
@@ -48,7 +50,7 @@ def parse_arithmetic_expression(
         )
     if (
         len(equation) > 500
-        or _SAFE_ARITHMETIC_EXPRESSION.fullmatch(equation) is None
+        or _SAFE_EXPRESSION.fullmatch(equation) is None
     ):
         raise ValueError(
             "The expression contains unsupported characters or functions. "
@@ -57,7 +59,10 @@ def parse_arithmetic_expression(
 
     x = sp.Symbol("x", real=True)
     try:
-        expression = sp.sympify(equation, locals={"x": x})
+        expression = sp.sympify(
+            equation,
+            locals={"x": x, **functions},
+        )
     except (sp.SympifyError, TypeError, ValueError, ZeroDivisionError) as error:
         raise ValueError(
             f"The equation could not be understood. Use a format such as {example}."
@@ -65,7 +70,12 @@ def parse_arithmetic_expression(
 
     if expression.free_symbols - {x}:
         raise ValueError(f"{graph_name} expressions may only contain the variable x.")
-    if expression.atoms(sp.Function):
+    unsupported_functions = {
+        function.func
+        for function in expression.atoms(sp.Function)
+        if function.func not in functions.values()
+    }
+    if unsupported_functions:
         raise ValueError("Named functions are not supported by this graph generator.")
 
     return x, expression
