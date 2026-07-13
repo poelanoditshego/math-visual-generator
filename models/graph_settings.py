@@ -39,6 +39,10 @@ class GraphSettings:
     show_axis_of_symmetry: bool = True
     show_minimum_or_maximum: bool = True
 
+    # Exponential graph options
+    show_horizontal_asymptote: bool = True
+    horizontal_asymptote_label: bool = True
+
     # Image settings
     figure_width: float = 10
     figure_height: float = 7

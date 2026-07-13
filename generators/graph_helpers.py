@@ -36,6 +36,46 @@ def format_coordinate(value: float) -> str:
     return f"{value:.2f}".rstrip("0").rstrip(".")
 
 
+def finite_function_values(
+    expression: sp.Expr,
+    symbol: sp.Symbol,
+    x_values: np.ndarray,
+) -> np.ndarray:
+    """Evaluate an expression without allowing invalid sections to be joined."""
+
+    function = sp.lambdify(symbol, expression, modules=["numpy"])
+    with np.errstate(all="ignore"):
+        raw_values = function(x_values)
+
+    values = np.asarray(raw_values)
+    if values.ndim == 0:
+        values = np.full(np.asarray(x_values).shape, values)
+
+    if np.iscomplexobj(values):
+        nearly_real = np.isclose(values.imag, 0, atol=1e-10)
+        values = np.where(nearly_real, values.real, np.nan)
+
+    try:
+        values = values.astype(float)
+    except (TypeError, ValueError, OverflowError):
+        return np.full(np.asarray(x_values).shape, np.nan, dtype=float)
+
+    values[~np.isfinite(values)] = np.nan
+    return values
+
+
+def finite_real_number(value: sp.Expr | float) -> float | None:
+    """Convert one symbolic value to a finite real float, or return none."""
+
+    try:
+        numeric_value = complex(sp.N(value))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if abs(numeric_value.imag) > 1e-10 or not np.isfinite(numeric_value.real):
+        return None
+    return float(numeric_value.real)
+
+
 def _coordinate_key(x_value: float, y_value: float) -> tuple[float, float]:
     return (round(float(x_value), 9), round(float(y_value), 9))
 

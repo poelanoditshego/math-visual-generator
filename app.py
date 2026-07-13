@@ -1,12 +1,10 @@
 import streamlit as st
 
+from generators.exponential import create_exponential_graph
 from generators.linear import create_linear_graph
+from generators.mixed import create_mixed_graph
 from generators.quadratic import create_quadratic_graph
 from models.graph_settings import GraphSettings
-
-from generators.mixed import create_mixed_graph
-
-
 
 st.set_page_config(
     page_title="Math Visual Generator",
@@ -15,11 +13,11 @@ st.set_page_config(
 )
 
 st.title("Math Visual Generator")
-st.write("Generate customised linear and quadratic graphs.")
+st.write("Generate customised linear, quadratic, mixed, and exponential graphs.")
 
 graph_type = st.selectbox(
     "Choose a graph type",
-    ["Linear", "Quadratic", "Mixed"],
+    ["Linear", "Quadratic", "Mixed", "Exponential"],
 )
 
 if graph_type == "Mixed":
@@ -36,12 +34,15 @@ if graph_type == "Mixed":
 else:
     if graph_type == "Linear":
         default_equation = "2*x - 4"
-    else:
+    elif graph_type == "Quadratic":
         default_equation = "x**2 - 4*x + 3"
+    else:
+        default_equation = "2**x"
 
     equation = st.text_input(
         "Enter the expression",
         value=default_equation,
+        key=f"{graph_type.lower()}_equation",
     )
 
 st.subheader("Graph range")
@@ -77,6 +78,7 @@ st.subheader("Graph labels")
 title = st.text_input(
     "Graph title",
     value=f"{graph_type} Function",
+    key=f"{graph_type.lower()}_title",
 )
 
 label_col1, label_col2 = st.columns(2)
@@ -246,6 +248,8 @@ show_gradient = True
 show_gradient_triangle = False
 show_turning_point = True
 show_axis_of_symmetry = True
+show_horizontal_asymptote = True
+horizontal_asymptote_label = True
 turning_point_horizontal = 10
 turning_point_vertical = -25
 
@@ -262,7 +266,7 @@ if graph_type == "Linear":
         value=True,
     )
 
-else:
+elif graph_type in {"Quadratic", "Mixed"}:
     st.subheader("Quadratic graph options")
 
     show_turning_point = st.checkbox(
@@ -288,6 +292,19 @@ else:
             "Turning-point vertical offset",
             value=-25,
         )
+
+elif graph_type == "Exponential":
+    st.subheader("Exponential graph options")
+
+    show_horizontal_asymptote = st.checkbox(
+        "Show horizontal asymptote",
+        value=True,
+    )
+
+    horizontal_asymptote_label = st.checkbox(
+        "Show asymptote label",
+        value=True,
+    )
 
 
 st.subheader("Additional coordinates")
@@ -323,12 +340,16 @@ if graph_type == "Linear":
 elif graph_type == "Quadratic":
     default_output_name = "quadratic_graph.png"
 
-else:
+elif graph_type == "Mixed":
     default_output_name = "mixed_graph.png"
+
+else:
+    default_output_name = "exponential_graph.png"
 
 output_name = st.text_input(
     "Output filename",
     value=default_output_name,
+    key=f"{graph_type.lower()}_output_name",
 )
 
 if st.button("Generate Graph", type="primary"):
@@ -391,6 +412,8 @@ if st.button("Generate Graph", type="primary"):
             show_gradient_triangle=show_gradient_triangle,
             show_turning_point=show_turning_point,
             show_axis_of_symmetry=show_axis_of_symmetry,
+            show_horizontal_asymptote=show_horizontal_asymptote,
+            horizontal_asymptote_label=horizontal_asymptote_label,
             x_intercept_label_offset=(
                 int(x_intercept_horizontal),
                 int(x_intercept_vertical),
@@ -433,6 +456,12 @@ if st.button("Generate Graph", type="primary"):
                     settings=settings,
                 )
 
+            elif graph_type == "Exponential":
+                create_exponential_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
             else:
                 create_mixed_graph(
                     equations=[
@@ -448,7 +477,7 @@ if st.button("Generate Graph", type="primary"):
             st.image(
                 graph_path,
                 caption=title,
-                use_container_width=True,
+                width="stretch",
             )
 
             with open(graph_path, "rb") as graph_file:
