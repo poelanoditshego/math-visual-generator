@@ -48,6 +48,13 @@ class GraphSettings:
     show_asymptote_labels: bool = True
     show_hyperbola_centre: bool = True
 
+    # Cubic graph options
+    show_stationary_points: bool = True
+    show_stationary_point_labels: bool = True
+    show_stationary_point_type: bool = False
+    show_inflection_point: bool = True
+    show_inflection_point_label: bool = True
+
     # Image settings
     figure_width: float = 10
     figure_height: float = 7

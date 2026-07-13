@@ -214,12 +214,15 @@ def annotate_point(
     x_value: float,
     y_value: float,
     offset: tuple[int, int],
+    prefix: str | None = None,
 ) -> None:
     """Annotate one point according to the shared point-label settings."""
 
     label = labeler.format_label(x_value, y_value)
     if not label or not labeler.mark_annotated(x_value, y_value):
         return
+    if prefix:
+        label = f"{prefix} {label}"
 
     ax.annotate(
         label,

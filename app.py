@@ -1,5 +1,6 @@
 import streamlit as st
 
+from generators.cubic import create_cubic_graph
 from generators.exponential import create_exponential_graph
 from generators.hyperbola import create_hyperbola_graph
 from generators.linear import create_linear_graph
@@ -15,12 +16,12 @@ st.set_page_config(
 
 st.title("Math Visual Generator")
 st.write(
-    "Generate customised linear, quadratic, mixed, exponential, and hyperbola graphs."
+    "Generate customised linear, quadratic, mixed, exponential, hyperbola, and cubic graphs."
 )
 
 graph_type = st.selectbox(
     "Choose a graph type",
-    ["Linear", "Quadratic", "Mixed", "Exponential", "Hyperbola"],
+    ["Linear", "Quadratic", "Mixed", "Exponential", "Hyperbola", "Cubic"],
 )
 
 if graph_type == "Mixed":
@@ -41,8 +42,10 @@ else:
         default_equation = "x**2 - 4*x + 3"
     elif graph_type == "Exponential":
         default_equation = "2**x"
-    else:
+    elif graph_type == "Hyperbola":
         default_equation = "1/x"
+    else:
+        default_equation = "x**3 - 4*x"
 
     equation = st.text_input(
         "Enter the expression",
@@ -258,6 +261,11 @@ horizontal_asymptote_label = True
 show_vertical_asymptote = True
 show_asymptote_labels = True
 show_hyperbola_centre = True
+show_stationary_points = True
+show_stationary_point_labels = True
+show_stationary_point_type = False
+show_inflection_point = True
+show_inflection_point_label = True
 turning_point_horizontal = 10
 turning_point_vertical = -25
 
@@ -337,6 +345,34 @@ elif graph_type == "Hyperbola":
         value=True,
     )
 
+elif graph_type == "Cubic":
+    st.subheader("Cubic graph options")
+
+    show_stationary_points = st.checkbox(
+        "Show stationary points",
+        value=True,
+    )
+
+    show_stationary_point_labels = st.checkbox(
+        "Show stationary-point labels",
+        value=True,
+    )
+
+    show_stationary_point_type = st.checkbox(
+        "Show stationary-point type",
+        value=False,
+    )
+
+    show_inflection_point = st.checkbox(
+        "Show point of inflection",
+        value=True,
+    )
+
+    show_inflection_point_label = st.checkbox(
+        "Show inflection-point label",
+        value=True,
+    )
+
 
 st.subheader("Additional coordinates")
 
@@ -377,8 +413,11 @@ elif graph_type == "Mixed":
 elif graph_type == "Exponential":
     default_output_name = "exponential_graph.png"
 
-else:
+elif graph_type == "Hyperbola":
     default_output_name = "hyperbola_graph.png"
+
+else:
+    default_output_name = "cubic_graph.png"
 
 output_name = st.text_input(
     "Output filename",
@@ -451,6 +490,11 @@ if st.button("Generate Graph", type="primary"):
             show_vertical_asymptote=show_vertical_asymptote,
             show_asymptote_labels=show_asymptote_labels,
             show_hyperbola_centre=show_hyperbola_centre,
+            show_stationary_points=show_stationary_points,
+            show_stationary_point_labels=show_stationary_point_labels,
+            show_stationary_point_type=show_stationary_point_type,
+            show_inflection_point=show_inflection_point,
+            show_inflection_point_label=show_inflection_point_label,
             x_intercept_label_offset=(
                 int(x_intercept_horizontal),
                 int(x_intercept_vertical),
@@ -501,6 +545,12 @@ if st.button("Generate Graph", type="primary"):
 
             elif graph_type == "Hyperbola":
                 create_hyperbola_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
+            elif graph_type == "Cubic":
+                create_cubic_graph(
                     equation=equation,
                     settings=settings,
                 )
