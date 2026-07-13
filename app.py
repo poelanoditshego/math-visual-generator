@@ -1,5 +1,6 @@
 import streamlit as st
 
+from generators.cosine import create_cosine_graph
 from generators.cubic import create_cubic_graph
 from generators.exponential import create_exponential_graph
 from generators.hyperbola import create_hyperbola_graph
@@ -7,6 +8,7 @@ from generators.linear import create_linear_graph
 from generators.logarithmic import create_logarithmic_graph
 from generators.mixed import create_mixed_graph
 from generators.quadratic import create_quadratic_graph
+from generators.sine import create_sine_graph
 from models.graph_settings import GraphSettings
 
 st.set_page_config(
@@ -17,7 +19,8 @@ st.set_page_config(
 
 st.title("Math Visual Generator")
 st.write(
-    "Generate customised linear, quadratic, mixed, exponential, hyperbola, cubic, and logarithmic graphs."
+    "Generate customised linear, quadratic, mixed, exponential, hyperbola, "
+    "cubic, logarithmic, sine, and cosine graphs."
 )
 
 graph_type = st.selectbox(
@@ -30,6 +33,8 @@ graph_type = st.selectbox(
         "Hyperbola",
         "Cubic",
         "Logarithmic",
+        "Sine",
+        "Cosine",
     ],
 )
 
@@ -55,8 +60,12 @@ else:
         default_equation = "1/x"
     elif graph_type == "Cubic":
         default_equation = "x**3 - 4*x"
-    else:
+    elif graph_type == "Logarithmic":
         default_equation = "log(x)"
+    elif graph_type == "Sine":
+        default_equation = "sin(x)"
+    else:
+        default_equation = "cos(x)"
 
     equation = st.text_input(
         "Enter the expression",
@@ -66,30 +75,45 @@ else:
 
 st.subheader("Graph range")
 
+if graph_type in {"Sine", "Cosine"}:
+    default_x_min = -360.0
+    default_x_max = 360.0
+    default_y_min = -5.0
+    default_y_max = 5.0
+else:
+    default_x_min = -10.0
+    default_x_max = 10.0
+    default_y_min = -10.0
+    default_y_max = 10.0
+
 range_col1, range_col2, range_col3, range_col4 = st.columns(4)
 
 with range_col1:
     x_min = st.number_input(
         "Minimum x-value",
-        value=-10.0,
+        value=default_x_min,
+        key=f"{graph_type.lower()}_x_min",
     )
 
 with range_col2:
     x_max = st.number_input(
         "Maximum x-value",
-        value=10.0,
+        value=default_x_max,
+        key=f"{graph_type.lower()}_x_max",
     )
 
 with range_col3:
     y_min = st.number_input(
         "Minimum y-value",
-        value=-10.0,
+        value=default_y_min,
+        key=f"{graph_type.lower()}_y_min",
     )
 
 with range_col4:
     y_max = st.number_input(
         "Maximum y-value",
-        value=10.0,
+        value=default_y_max,
+        key=f"{graph_type.lower()}_y_max",
     )
 
 st.subheader("Graph labels")
@@ -277,6 +301,17 @@ show_stationary_point_labels = True
 show_stationary_point_type = False
 show_inflection_point = True
 show_inflection_point_label = True
+trig_angle_mode = "Degrees"
+show_pi_tick_labels = False
+show_degree_symbols = True
+show_midline = True
+show_midline_label = True
+show_maximum_points = True
+show_minimum_points = True
+show_extreme_point_labels = True
+show_sine_key_points = False
+show_standard_trig_points = False
+show_cosine_key_points = False
 turning_point_horizontal = 10
 turning_point_vertical = -25
 
@@ -397,6 +432,58 @@ elif graph_type == "Logarithmic":
         value=True,
     )
 
+elif graph_type in {"Sine", "Cosine"}:
+    st.subheader(f"{graph_type} graph options")
+
+    trig_angle_mode = st.selectbox(
+        "Angle mode",
+        ["Degrees", "Radians"],
+    )
+
+    if trig_angle_mode == "Degrees":
+        show_degree_symbols = st.checkbox(
+            "Show degree symbols",
+            value=True,
+        )
+
+    elif graph_type == "Cosine":
+        show_pi_tick_labels = st.checkbox(
+            "Show x-axis labels as multiples of pi",
+            value=True,
+        )
+
+    show_midline = st.checkbox(
+        "Show midline",
+        value=True,
+    )
+
+    show_midline_label = st.checkbox(
+        "Show midline label",
+        value=True,
+    )
+
+    show_maximum_points = st.checkbox(
+        "Show maximum points",
+        value=True,
+    )
+
+    show_minimum_points = st.checkbox(
+        "Show minimum points",
+        value=True,
+    )
+
+    show_extreme_point_labels = st.checkbox(
+        "Show maximum and minimum labels",
+        value=True,
+    )
+
+    show_standard_trig_points = st.checkbox(
+        "Show standard trigonometric points",
+        value=False,
+    )
+    show_sine_key_points = show_standard_trig_points
+    show_cosine_key_points = show_standard_trig_points
+
 
 st.subheader("Additional coordinates")
 
@@ -443,8 +530,14 @@ elif graph_type == "Hyperbola":
 elif graph_type == "Cubic":
     default_output_name = "cubic_graph.png"
 
-else:
+elif graph_type == "Logarithmic":
     default_output_name = "logarithmic_graph.png"
+
+elif graph_type == "Sine":
+    default_output_name = "sine_graph.png"
+
+else:
+    default_output_name = "cosine_graph.png"
 
 output_name = st.text_input(
     "Output filename",
@@ -522,6 +615,17 @@ if st.button("Generate Graph", type="primary"):
             show_stationary_point_type=show_stationary_point_type,
             show_inflection_point=show_inflection_point,
             show_inflection_point_label=show_inflection_point_label,
+            trig_angle_mode=trig_angle_mode,
+            show_pi_tick_labels=show_pi_tick_labels,
+            show_degree_symbols=show_degree_symbols,
+            show_midline=show_midline,
+            show_midline_label=show_midline_label,
+            show_maximum_points=show_maximum_points,
+            show_minimum_points=show_minimum_points,
+            show_extreme_point_labels=show_extreme_point_labels,
+            show_sine_key_points=show_sine_key_points,
+            show_standard_trig_points=show_standard_trig_points,
+            show_cosine_key_points=show_cosine_key_points,
             x_intercept_label_offset=(
                 int(x_intercept_horizontal),
                 int(x_intercept_vertical),
@@ -584,6 +688,18 @@ if st.button("Generate Graph", type="primary"):
 
             elif graph_type == "Logarithmic":
                 create_logarithmic_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
+            elif graph_type == "Sine":
+                create_sine_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
+            elif graph_type == "Cosine":
+                create_cosine_graph(
                     equation=equation,
                     settings=settings,
                 )

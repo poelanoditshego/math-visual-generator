@@ -55,6 +55,19 @@ class GraphSettings:
     show_inflection_point: bool = True
     show_inflection_point_label: bool = True
 
+    # Sine graph options
+    trig_angle_mode: str = "Degrees"
+    show_pi_tick_labels: bool = False
+    show_degree_symbols: bool = True
+    show_midline: bool = True
+    show_midline_label: bool = True
+    show_maximum_points: bool = True
+    show_minimum_points: bool = True
+    show_extreme_point_labels: bool = True
+    show_sine_key_points: bool = False
+    show_standard_trig_points: bool = False
+    show_cosine_key_points: bool = False
+
     # Image settings
     figure_width: float = 10
     figure_height: float = 7

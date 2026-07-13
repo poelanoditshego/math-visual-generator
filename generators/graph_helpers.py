@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from fractions import Fraction
 from string import ascii_uppercase
 
 import numpy as np
@@ -33,6 +34,8 @@ def parse_arithmetic_expression(
     graph_name: str,
     example: str,
     allowed_functions: dict[str, object] | None = None,
+    allowed_constants: dict[str, object] | None = None,
+    evaluate: bool = True,
 ) -> tuple[sp.Symbol, sp.Expr]:
     """Safely parse a one-variable arithmetic expression for a generator."""
 
@@ -40,8 +43,9 @@ def parse_arithmetic_expression(
         raise ValueError(f"Enter a {graph_name.lower()} expression such as {example}.")
 
     functions = allowed_functions or {}
+    constants = allowed_constants or {}
     identifiers = set(re.findall(r"[A-Za-z_]\w*", equation))
-    unsupported_identifiers = identifiers - {"x", *functions}
+    unsupported_identifiers = identifiers - {"x", *functions, *constants}
     if unsupported_identifiers:
         names = ", ".join(sorted(unsupported_identifiers))
         raise ValueError(
@@ -61,7 +65,8 @@ def parse_arithmetic_expression(
     try:
         expression = sp.sympify(
             equation,
-            locals={"x": x, **functions},
+            locals={"x": x, **functions, **constants},
+            evaluate=evaluate,
         )
     except (sp.SympifyError, TypeError, ValueError, ZeroDivisionError) as error:
         raise ValueError(
@@ -79,6 +84,60 @@ def parse_arithmetic_expression(
         raise ValueError("Named functions are not supported by this graph generator.")
 
     return x, expression
+
+
+def configure_trig_x_ticks(
+    ax: Axes,
+    x_min: float,
+    x_max: float,
+    angle_mode: str,
+    show_pi_labels: bool,
+    hide_zero: bool = False,
+    show_degree_symbols: bool = True,
+) -> None:
+    """Apply readable radian or degree ticks without overcrowding the axis."""
+
+    if angle_mode == "Radians" and not show_pi_labels:
+        return
+
+    base_step = np.pi / 2 if angle_mode == "Radians" else 90.0
+    step = base_step
+    while (x_max - x_min) / step > 12:
+        step *= 2
+
+    first_index = int(np.ceil(x_min / step - 1e-12))
+    last_index = int(np.floor(x_max / step + 1e-12))
+    ticks = np.arange(first_index, last_index + 1, dtype=float) * step
+    if angle_mode == "Degrees":
+        labels = [
+            "" if hide_zero and abs(value) < 1e-9
+            else (
+                rf"${format_coordinate(value)}^\circ$"
+                if show_degree_symbols
+                else format_coordinate(value)
+            )
+            for value in ticks
+        ]
+    else:
+        labels = []
+        for value in ticks:
+            fraction = Fraction(float(value / np.pi)).limit_denominator(16)
+            numerator = fraction.numerator
+            denominator = fraction.denominator
+            if numerator == 0:
+                labels.append("" if hide_zero else "$0$")
+                continue
+            sign = "-" if numerator < 0 else ""
+            magnitude = abs(numerator)
+            coefficient = "" if magnitude == 1 else str(magnitude)
+            if denominator == 1:
+                labels.append(rf"${sign}{coefficient}\pi$")
+            else:
+                numerator_text = rf"{coefficient}\pi"
+                labels.append(
+                    rf"${sign}\frac{{{numerator_text}}}{{{denominator}}}$"
+                )
+    ax.set_xticks(ticks, labels)
 
 
 def format_coordinate(value: float) -> str:
