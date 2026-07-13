@@ -43,6 +43,11 @@ class GraphSettings:
     show_horizontal_asymptote: bool = True
     horizontal_asymptote_label: bool = True
 
+    # Hyperbola graph options
+    show_vertical_asymptote: bool = True
+    show_asymptote_labels: bool = True
+    show_hyperbola_centre: bool = True
+
     # Image settings
     figure_width: float = 10
     figure_height: float = 7

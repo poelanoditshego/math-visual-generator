@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -18,44 +17,19 @@ from generators.graph_helpers import (
     format_coordinate,
     graph_label,
     graph_legend_is_enabled,
+    parse_arithmetic_expression,
 )
 from models.graph_settings import GraphSettings
-
-
-_SAFE_EXPRESSION = re.compile(r"[0-9x+\-*/().\s]+")
 
 
 def parse_exponential_expression(equation: str) -> tuple[sp.Symbol, sp.Expr]:
     """Parse and validate a real constant-base exponential expression."""
 
-    if not isinstance(equation, str) or not equation.strip():
-        raise ValueError("Enter an exponential expression such as 2**x.")
-    identifiers = set(re.findall(r"[A-Za-z_]\w*", equation))
-    unsupported_identifiers = identifiers - {"x"}
-    if unsupported_identifiers:
-        names = ", ".join(sorted(unsupported_identifiers))
-        raise ValueError(
-            "Exponential expressions may only use the variable x; "
-            f"unsupported name: {names}."
-        )
-    if len(equation) > 500 or _SAFE_EXPRESSION.fullmatch(equation) is None:
-        raise ValueError(
-            "The expression contains unsupported characters or functions. "
-            "Use numbers, x, parentheses, and arithmetic operators only."
-        )
-
-    x = sp.Symbol("x", real=True)
-    try:
-        expression = sp.sympify(equation, locals={"x": x})
-    except (sp.SympifyError, TypeError, ValueError, ZeroDivisionError) as error:
-        raise ValueError(
-            "The equation could not be understood. Use a format such as 2**x + 3."
-        ) from error
-
-    if expression.free_symbols - {x}:
-        raise ValueError("Exponential expressions may only contain the variable x.")
-    if expression.atoms(sp.Function):
-        raise ValueError("Logarithmic and trigonometric functions are not supported.")
+    x, expression = parse_arithmetic_expression(
+        equation,
+        graph_name="Exponential",
+        example="2**x + 3",
+    )
 
     exponential_powers: list[sp.Pow] = []
     for power in expression.atoms(sp.Pow):

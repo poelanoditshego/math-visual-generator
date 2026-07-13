@@ -1,6 +1,7 @@
 import streamlit as st
 
 from generators.exponential import create_exponential_graph
+from generators.hyperbola import create_hyperbola_graph
 from generators.linear import create_linear_graph
 from generators.mixed import create_mixed_graph
 from generators.quadratic import create_quadratic_graph
@@ -13,11 +14,13 @@ st.set_page_config(
 )
 
 st.title("Math Visual Generator")
-st.write("Generate customised linear, quadratic, mixed, and exponential graphs.")
+st.write(
+    "Generate customised linear, quadratic, mixed, exponential, and hyperbola graphs."
+)
 
 graph_type = st.selectbox(
     "Choose a graph type",
-    ["Linear", "Quadratic", "Mixed", "Exponential"],
+    ["Linear", "Quadratic", "Mixed", "Exponential", "Hyperbola"],
 )
 
 if graph_type == "Mixed":
@@ -36,8 +39,10 @@ else:
         default_equation = "2*x - 4"
     elif graph_type == "Quadratic":
         default_equation = "x**2 - 4*x + 3"
-    else:
+    elif graph_type == "Exponential":
         default_equation = "2**x"
+    else:
+        default_equation = "1/x"
 
     equation = st.text_input(
         "Enter the expression",
@@ -250,6 +255,9 @@ show_turning_point = True
 show_axis_of_symmetry = True
 show_horizontal_asymptote = True
 horizontal_asymptote_label = True
+show_vertical_asymptote = True
+show_asymptote_labels = True
+show_hyperbola_centre = True
 turning_point_horizontal = 10
 turning_point_vertical = -25
 
@@ -306,6 +314,29 @@ elif graph_type == "Exponential":
         value=True,
     )
 
+elif graph_type == "Hyperbola":
+    st.subheader("Hyperbola graph options")
+
+    show_vertical_asymptote = st.checkbox(
+        "Show vertical asymptote",
+        value=True,
+    )
+
+    show_horizontal_asymptote = st.checkbox(
+        "Show horizontal asymptote",
+        value=True,
+    )
+
+    show_asymptote_labels = st.checkbox(
+        "Show asymptote labels",
+        value=True,
+    )
+
+    show_hyperbola_centre = st.checkbox(
+        "Show hyperbola centre",
+        value=True,
+    )
+
 
 st.subheader("Additional coordinates")
 
@@ -343,8 +374,11 @@ elif graph_type == "Quadratic":
 elif graph_type == "Mixed":
     default_output_name = "mixed_graph.png"
 
-else:
+elif graph_type == "Exponential":
     default_output_name = "exponential_graph.png"
+
+else:
+    default_output_name = "hyperbola_graph.png"
 
 output_name = st.text_input(
     "Output filename",
@@ -414,6 +448,9 @@ if st.button("Generate Graph", type="primary"):
             show_axis_of_symmetry=show_axis_of_symmetry,
             show_horizontal_asymptote=show_horizontal_asymptote,
             horizontal_asymptote_label=horizontal_asymptote_label,
+            show_vertical_asymptote=show_vertical_asymptote,
+            show_asymptote_labels=show_asymptote_labels,
+            show_hyperbola_centre=show_hyperbola_centre,
             x_intercept_label_offset=(
                 int(x_intercept_horizontal),
                 int(x_intercept_vertical),
@@ -458,6 +495,12 @@ if st.button("Generate Graph", type="primary"):
 
             elif graph_type == "Exponential":
                 create_exponential_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
+            elif graph_type == "Hyperbola":
+                create_hyperbola_graph(
                     equation=equation,
                     settings=settings,
                 )

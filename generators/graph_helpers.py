@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from string import ascii_uppercase
 
 import numpy as np
@@ -23,6 +24,51 @@ GRAPH_LABEL_STYLES = (
     "Function name only",
     "No graph label",
 )
+
+_SAFE_ARITHMETIC_EXPRESSION = re.compile(r"[0-9x+\-*/().\s]+")
+
+
+def parse_arithmetic_expression(
+    equation: str,
+    graph_name: str,
+    example: str,
+) -> tuple[sp.Symbol, sp.Expr]:
+    """Safely parse a one-variable arithmetic expression for a generator."""
+
+    if not isinstance(equation, str) or not equation.strip():
+        raise ValueError(f"Enter a {graph_name.lower()} expression such as {example}.")
+
+    identifiers = set(re.findall(r"[A-Za-z_]\w*", equation))
+    unsupported_identifiers = identifiers - {"x"}
+    if unsupported_identifiers:
+        names = ", ".join(sorted(unsupported_identifiers))
+        raise ValueError(
+            f"{graph_name} expressions may only use the variable x; "
+            f"unsupported name: {names}."
+        )
+    if (
+        len(equation) > 500
+        or _SAFE_ARITHMETIC_EXPRESSION.fullmatch(equation) is None
+    ):
+        raise ValueError(
+            "The expression contains unsupported characters or functions. "
+            "Use numbers, x, parentheses, and arithmetic operators only."
+        )
+
+    x = sp.Symbol("x", real=True)
+    try:
+        expression = sp.sympify(equation, locals={"x": x})
+    except (sp.SympifyError, TypeError, ValueError, ZeroDivisionError) as error:
+        raise ValueError(
+            f"The equation could not be understood. Use a format such as {example}."
+        ) from error
+
+    if expression.free_symbols - {x}:
+        raise ValueError(f"{graph_name} expressions may only contain the variable x.")
+    if expression.atoms(sp.Function):
+        raise ValueError("Named functions are not supported by this graph generator.")
+
+    return x, expression
 
 
 def format_coordinate(value: float) -> str:
