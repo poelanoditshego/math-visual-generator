@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -39,3 +39,25 @@ class GraphSettings:
     figure_height: float = 7
     output_name: str = "graph.png"
     image_dpi: int = 300
+
+      # Annotation settings
+    x_intercept_label_offset: tuple[int, int] = (8, 12)
+    y_intercept_label_offset: tuple[int, int] = (8, 12)
+    turning_point_label_offset: tuple[int, int] = (10, -25)
+
+    annotation_font_size: int = 10
+    annotation_background: bool = True
+    annotation_arrows: bool = False
+
+    # Additional coordinates
+    additional_x_values: list[float] = field(default_factory=list)
+    show_additional_point_labels: bool = True
+    additional_point_label_offset: tuple[int, int] = (8, 12)
+
+    # Axis boundary and numbering
+    show_border: bool = True
+    show_tick_marks: bool = True
+    show_tick_labels: bool = True
+
+    show_title: bool = True
+    show_legend: bool = True
