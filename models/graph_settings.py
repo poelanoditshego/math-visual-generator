@@ -23,7 +23,12 @@ class GraphSettings:
     show_axes: bool = True
     show_equation: bool = True
     show_intercepts: bool = True
+    show_intersection_points: bool = True
     show_point_labels: bool = True
+    point_label_style: str = "Coordinates only"
+    graph_label_style: str = "Full equation"
+    show_origin_label: bool = True
+    show_graph_arrows: bool = True
 
     # Linear graph options
     show_gradient: bool = True
@@ -40,10 +45,11 @@ class GraphSettings:
     output_name: str = "graph.png"
     image_dpi: int = 300
 
-      # Annotation settings
+    # Annotation settings
     x_intercept_label_offset: tuple[int, int] = (8, 12)
     y_intercept_label_offset: tuple[int, int] = (8, 12)
     turning_point_label_offset: tuple[int, int] = (10, -25)
+    intersection_label_offset: tuple[int, int] = (8, 12)
 
     annotation_font_size: int = 10
     annotation_background: bool = True

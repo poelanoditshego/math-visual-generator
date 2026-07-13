@@ -4,6 +4,9 @@ from generators.linear import create_linear_graph
 from generators.quadratic import create_quadratic_graph
 from models.graph_settings import GraphSettings
 
+from generators.mixed import create_mixed_graph
+
+
 
 st.set_page_config(
     page_title="Math Visual Generator",
@@ -16,18 +19,30 @@ st.write("Generate customised linear and quadratic graphs.")
 
 graph_type = st.selectbox(
     "Choose a graph type",
-    ["Linear", "Quadratic"],
+    ["Linear", "Quadratic", "Mixed"],
 )
 
-if graph_type == "Linear":
-    default_equation = "2*x - 4"
+if graph_type == "Mixed":
+    equation_1 = st.text_input(
+        "Enter the first equation",
+        value="2*x - 4",
+    )
+
+    equation_2 = st.text_input(
+        "Enter the second equation",
+        value="x**2 - 4*x + 3",
+    )
+
 else:
-    default_equation = "x**2 - 4*x + 3"
+    if graph_type == "Linear":
+        default_equation = "2*x - 4"
+    else:
+        default_equation = "x**2 - 4*x + 3"
 
-equation = st.text_input(
-    "Enter the expression",
-    value=default_equation,
-)
+    equation = st.text_input(
+        "Enter the expression",
+        value=default_equation,
+    )
 
 st.subheader("Graph range")
 
@@ -78,6 +93,16 @@ with label_col2:
         value="y",
     )
 
+graph_label_style = st.selectbox(
+    "Graph label style",
+    [
+        "Full equation",
+        "Function equation",
+        "Function name only",
+        "No graph label",
+    ],
+)
+
 st.subheader("Display options")
 
 option_col1, option_col2, option_col3 = st.columns(3)
@@ -125,20 +150,55 @@ with option_col2:
     )
 
 with option_col3:
+    show_tick_labels = st.checkbox(
+        "Show axis numbers",
+        value=True,
+    )
+
+    show_intersection_points = st.checkbox(
+        "Show intersection points",
+        value=True,
+    )
+
+st.subheader("Point labels")
+
+point_label_style = st.selectbox(
+    "Point label style",
+    [
+        "Coordinates only",
+        "Capital letter and coordinates",
+        "Capital letter only",
+        "No label",
+    ],
+)
+
+point_label_col1, point_label_col2 = st.columns(2)
+
+with point_label_col1:
     show_point_labels = st.checkbox(
         "Show point labels",
         value=True,
     )
 
+with point_label_col2:
     annotation_background = st.checkbox(
         "Show label backgrounds",
         value=True,
     )
 
-    show_tick_labels = st.checkbox(
-        "Show axis numbers",
-        value=True,
-    )
+st.subheader("Axes and origin")
+
+show_origin_label = st.checkbox(
+    "Show 0 at the origin",
+    value=True,
+)
+
+st.subheader("Graph arrows")
+
+show_graph_arrows = st.checkbox(
+    "Show arrows at graph ends",
+    value=True,
+)
 
 st.subheader("Label positions")
 
@@ -164,6 +224,22 @@ with position_col2:
     y_intercept_vertical = st.number_input(
         "Y-intercept vertical offset",
         value=10,
+    )
+
+st.subheader("Intersection label position")
+
+intersection_col1, intersection_col2 = st.columns(2)
+
+with intersection_col1:
+    intersection_label_horizontal = st.number_input(
+        "Intersection label horizontal offset",
+        value=8,
+    )
+
+with intersection_col2:
+    intersection_label_vertical = st.number_input(
+        "Intersection label vertical offset",
+        value=12,
     )
 
 show_gradient = True
@@ -241,13 +317,18 @@ with additional_col2:
         value=12,
     )
 
+if graph_type == "Linear":
+    default_output_name = "linear_graph.png"
+
+elif graph_type == "Quadratic":
+    default_output_name = "quadratic_graph.png"
+
+else:
+    default_output_name = "mixed_graph.png"
+
 output_name = st.text_input(
     "Output filename",
-    value=(
-        "linear_graph.png"
-        if graph_type == "Linear"
-        else "quadratic_graph.png"
-    ),
+    value=default_output_name,
 )
 
 if st.button("Generate Graph", type="primary"):
@@ -295,7 +376,12 @@ if st.button("Generate Graph", type="primary"):
             show_legend=show_legend,
 
             show_intercepts=show_intercepts,
+            show_intersection_points=show_intersection_points,
             show_point_labels=show_point_labels,
+            point_label_style=point_label_style,
+            graph_label_style=graph_label_style,
+            show_origin_label=show_origin_label,
+            show_graph_arrows=show_graph_arrows,
 
             show_border=show_border,
             show_tick_marks=show_tick_marks,
@@ -318,6 +404,11 @@ if st.button("Generate Graph", type="primary"):
                 int(turning_point_vertical),
             ),
 
+            intersection_label_offset=(
+                int(intersection_label_horizontal),
+                int(intersection_label_vertical),
+            ),
+
             additional_x_values=additional_x_values,
             show_additional_point_labels=show_additional_point_labels,
             additional_point_label_offset=(
@@ -335,9 +426,19 @@ if st.button("Generate Graph", type="primary"):
                     equation=equation,
                     settings=settings,
                 )
-            else:
+
+            elif graph_type == "Quadratic":
                 create_quadratic_graph(
                     equation=equation,
+                    settings=settings,
+                )
+
+            else:
+                create_mixed_graph(
+                    equations=[
+                        equation_1,
+                        equation_2,
+                    ],
                     settings=settings,
                 )
 
