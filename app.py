@@ -265,17 +265,17 @@ if st.button("Generate Graph", type="primary"):
 
         additional_x_values = []
 
-    if additional_x_input.strip():
-        try:
-            additional_x_values = [
-                float(value.strip())
-                for value in additional_x_input.split(",")
-            ]
-        except ValueError:
-            st.error(
-                "Additional x-values must be numbers separated by commas."
-            )
-            st.stop()
+        if additional_x_input.strip():
+            try:
+                additional_x_values = [
+                    float(value.strip())
+                    for value in additional_x_input.split(",")
+                ]
+            except ValueError:
+                st.error(
+                    "Additional x-values must be numbers separated by commas."
+                )
+                st.stop()
 
 
         settings = GraphSettings(
