@@ -100,10 +100,19 @@ def configure_trig_x_ticks(
     if angle_mode == "Radians" and not show_pi_labels:
         return
 
-    base_step = np.pi / 2 if angle_mode == "Radians" else 90.0
-    step = base_step
-    while (x_max - x_min) / step > 12:
-        step *= 2
+    span = x_max - x_min
+    if angle_mode == "Radians":
+        step = np.pi / 2
+        while span / step > 10:
+            step *= 2
+    else:
+        degree_steps = (30.0, 45.0, 60.0, 90.0, 180.0, 360.0)
+        step = next(
+            (candidate for candidate in degree_steps if span / candidate <= 10),
+            degree_steps[-1],
+        )
+        while span / step > 10:
+            step *= 2
 
     first_index = int(np.ceil(x_min / step - 1e-12))
     last_index = int(np.floor(x_max / step + 1e-12))
@@ -209,8 +218,9 @@ def _capital_name(index: int) -> str:
 class PointLabeler:
     """Assign stable point names and prevent duplicate coordinate annotations."""
 
-    def __init__(self, style: str) -> None:
+    def __init__(self, style: str, x_suffix: str = "") -> None:
         self.style = style
+        self.x_suffix = x_suffix
         self._letters: dict[tuple[float, float], str] = {}
         self._annotated: set[tuple[float, float]] = set()
 
@@ -219,7 +229,8 @@ class PointLabeler:
             return None
 
         coordinates = (
-            f"({format_coordinate(x_value)}, {format_coordinate(y_value)})"
+            f"({format_coordinate(x_value)}{self.x_suffix}, "
+            f"{format_coordinate(y_value)})"
         )
         if self.style == "Coordinates only":
             return coordinates

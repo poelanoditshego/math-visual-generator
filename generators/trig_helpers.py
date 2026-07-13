@@ -136,7 +136,7 @@ def phase_solutions(
     )
 
 
-def _unique_values(values: list[float]) -> list[float]:
+def unique_values(values: list[float]) -> list[float]:
     unique: dict[float, float] = {}
     for value in values:
         unique.setdefault(round(value, 9), value)
@@ -232,7 +232,14 @@ def create_trig_graph(
     output_directory.mkdir(parents=True, exist_ok=True)
     output_path = output_directory / settings.output_name
     _, ax = plt.subplots(figsize=(settings.figure_width, settings.figure_height))
-    labeler = PointLabeler(settings.point_label_style)
+    labeler = PointLabeler(
+        settings.point_label_style,
+        x_suffix=(
+            "\N{DEGREE SIGN}"
+            if settings.trig_angle_mode == "Degrees" and settings.show_degree_symbols
+            else ""
+        ),
+    )
     plotted_points: set[tuple[float, float]] = set()
 
     for spine in ax.spines.values():
@@ -350,7 +357,7 @@ def create_trig_graph(
                         settings.x_max,
                     )
                 )
-            for root in _unique_values(roots):
+            for root in unique_values(roots):
                 plot_point(
                     root,
                     0.0,

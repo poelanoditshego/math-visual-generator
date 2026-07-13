@@ -9,6 +9,7 @@ from generators.logarithmic import create_logarithmic_graph
 from generators.mixed import create_mixed_graph
 from generators.quadratic import create_quadratic_graph
 from generators.sine import create_sine_graph
+from generators.tangent import create_tangent_graph
 from models.graph_settings import GraphSettings
 
 st.set_page_config(
@@ -20,7 +21,7 @@ st.set_page_config(
 st.title("Math Visual Generator")
 st.write(
     "Generate customised linear, quadratic, mixed, exponential, hyperbola, "
-    "cubic, logarithmic, sine, and cosine graphs."
+    "cubic, logarithmic, sine, cosine, and tangent graphs."
 )
 
 graph_type = st.selectbox(
@@ -35,6 +36,7 @@ graph_type = st.selectbox(
         "Logarithmic",
         "Sine",
         "Cosine",
+        "Tangent",
     ],
 )
 
@@ -64,8 +66,10 @@ else:
         default_equation = "log(x)"
     elif graph_type == "Sine":
         default_equation = "sin(x)"
-    else:
+    elif graph_type == "Cosine":
         default_equation = "cos(x)"
+    else:
+        default_equation = "tan(x)"
 
     equation = st.text_input(
         "Enter the expression",
@@ -75,7 +79,7 @@ else:
 
 st.subheader("Graph range")
 
-if graph_type in {"Sine", "Cosine"}:
+if graph_type in {"Sine", "Cosine", "Tangent"}:
     default_x_min = -360.0
     default_x_max = 360.0
     default_y_min = -5.0
@@ -312,6 +316,7 @@ show_extreme_point_labels = True
 show_sine_key_points = False
 show_standard_trig_points = False
 show_cosine_key_points = False
+show_tangent_key_points = False
 turning_point_horizontal = 10
 turning_point_vertical = -25
 
@@ -484,6 +489,47 @@ elif graph_type in {"Sine", "Cosine"}:
     show_sine_key_points = show_standard_trig_points
     show_cosine_key_points = show_standard_trig_points
 
+elif graph_type == "Tangent":
+    st.subheader("Tangent graph options")
+
+    trig_angle_mode = st.selectbox(
+        "Angle mode",
+        ["Degrees", "Radians"],
+    )
+
+    if trig_angle_mode == "Degrees":
+        show_degree_symbols = st.checkbox(
+            "Show degree symbols",
+            value=True,
+        )
+    else:
+        show_pi_tick_labels = st.checkbox(
+            "Show x-axis labels as multiples of pi",
+            value=True,
+        )
+
+    show_vertical_asymptote = st.checkbox(
+        "Show vertical asymptotes",
+        value=True,
+    )
+    show_asymptote_labels = st.checkbox(
+        "Show asymptote labels",
+        value=True,
+    )
+    show_midline = st.checkbox(
+        "Show midline",
+        value=True,
+    )
+    show_midline_label = st.checkbox(
+        "Show midline label",
+        value=True,
+    )
+    show_standard_trig_points = st.checkbox(
+        "Show standard trigonometric points",
+        value=False,
+    )
+    show_tangent_key_points = show_standard_trig_points
+
 
 st.subheader("Additional coordinates")
 
@@ -536,8 +582,11 @@ elif graph_type == "Logarithmic":
 elif graph_type == "Sine":
     default_output_name = "sine_graph.png"
 
-else:
+elif graph_type == "Cosine":
     default_output_name = "cosine_graph.png"
+
+else:
+    default_output_name = "tangent_graph.png"
 
 output_name = st.text_input(
     "Output filename",
@@ -626,6 +675,7 @@ if st.button("Generate Graph", type="primary"):
             show_sine_key_points=show_sine_key_points,
             show_standard_trig_points=show_standard_trig_points,
             show_cosine_key_points=show_cosine_key_points,
+            show_tangent_key_points=show_tangent_key_points,
             x_intercept_label_offset=(
                 int(x_intercept_horizontal),
                 int(x_intercept_vertical),
@@ -700,6 +750,12 @@ if st.button("Generate Graph", type="primary"):
 
             elif graph_type == "Cosine":
                 create_cosine_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
+            elif graph_type == "Tangent":
+                create_tangent_graph(
                     equation=equation,
                     settings=settings,
                 )

@@ -67,6 +67,7 @@ class GraphSettings:
     show_sine_key_points: bool = False
     show_standard_trig_points: bool = False
     show_cosine_key_points: bool = False
+    show_tangent_key_points: bool = False
 
     # Image settings
     figure_width: float = 10
