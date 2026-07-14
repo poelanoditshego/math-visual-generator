@@ -17,7 +17,9 @@ from generators.graph_helpers import (
     format_coordinate,
     graph_label,
     graph_legend_is_enabled,
+    is_supported_exponential,
     parse_arithmetic_expression,
+    supported_exponential_powers,
 )
 from models.graph_settings import GraphSettings
 
@@ -31,25 +33,14 @@ def parse_exponential_expression(equation: str) -> tuple[sp.Symbol, sp.Expr]:
         example="2**x + 3",
     )
 
-    exponential_powers: list[sp.Pow] = []
-    for power in expression.atoms(sp.Pow):
-        if not power.exp.has(x) or power.base.has(x):
-            continue
-        base_value = finite_real_number(power.base)
-        if base_value is not None and base_value > 0 and base_value != 1:
-            exponential_powers.append(power)
-
+    exponential_powers = supported_exponential_powers(expression, x)
     if not exponential_powers:
         raise ValueError(
             "The expression is not exponential. It must contain x in the "
             "exponent of a positive constant base, for example 2**x."
         )
 
-    replacements = {
-        power: sp.Dummy(f"exponential_{index}")
-        for index, power in enumerate(exponential_powers)
-    }
-    if expression.xreplace(replacements).has(x):
+    if not is_supported_exponential(expression, x):
         raise ValueError(
             "The variable x may only appear inside an exponential exponent."
         )

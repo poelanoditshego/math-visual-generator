@@ -42,6 +42,13 @@ def parse_arithmetic_expression(
     if not isinstance(equation, str) or not equation.strip():
         raise ValueError(f"Enter a {graph_name.lower()} expression such as {example}.")
 
+    equation = equation.strip()
+    if "=" in equation:
+        parts = equation.split("=")
+        if len(parts) != 2 or parts[0].strip().lower() != "y" or not parts[1].strip():
+            raise ValueError("Equations must be entered as an expression or as y = expression.")
+        equation = parts[1].strip()
+
     functions = allowed_functions or {}
     constants = allowed_constants or {}
     identifiers = set(re.findall(r"[A-Za-z_]\w*", equation))
@@ -84,6 +91,35 @@ def parse_arithmetic_expression(
         raise ValueError("Named functions are not supported by this graph generator.")
 
     return x, expression
+
+
+def supported_exponential_powers(
+    expression: sp.Expr,
+    x: sp.Symbol,
+) -> list[sp.Pow]:
+    """Return the valid constant-base powers that make an expression exponential."""
+
+    powers: list[sp.Pow] = []
+    for power in expression.atoms(sp.Pow):
+        if not power.exp.has(x) or power.base.has(x):
+            continue
+        base_value = finite_real_number(power.base)
+        if base_value is not None and base_value > 0 and base_value != 1:
+            powers.append(power)
+    return powers
+
+
+def is_supported_exponential(expression: sp.Expr, x: sp.Symbol) -> bool:
+    """Whether x occurs only in supported positive constant-base exponents."""
+
+    powers = supported_exponential_powers(expression, x)
+    if not powers or expression.is_polynomial(x):
+        return False
+    replacements = {
+        power: sp.Dummy(f"exponential_{index}")
+        for index, power in enumerate(powers)
+    }
+    return not expression.xreplace(replacements).has(x)
 
 
 def configure_trig_x_ticks(

@@ -46,12 +46,12 @@ graph_type = st.selectbox(
 if graph_type == "Mixed":
     equation_1 = st.text_input(
         "Enter the first equation",
-        value="2*x - 4",
+        value="x + 1",
     )
 
     equation_2 = st.text_input(
         "Enter the second equation",
-        value="x**2 - 4*x + 3",
+        value="2**x",
     )
 
 else:
@@ -356,7 +356,7 @@ if graph_type == "Linear":
         value=True,
     )
 
-elif graph_type in {"Quadratic", "Mixed"}:
+elif graph_type == "Quadratic":
     st.subheader("Quadratic graph options")
 
     show_turning_point = st.checkbox(
@@ -382,6 +382,20 @@ elif graph_type in {"Quadratic", "Mixed"}:
             "Turning-point vertical offset",
             value=-25,
         )
+
+elif graph_type == "Mixed":
+    st.subheader("Mixed graph options")
+
+    show_turning_point = st.checkbox("Show quadratic turning points", value=True)
+    show_axis_of_symmetry = st.checkbox("Show quadratic axes of symmetry", value=True)
+    show_horizontal_asymptote = st.checkbox("Show horizontal asymptote", value=True)
+    horizontal_asymptote_label = st.checkbox("Show asymptote label", value=True)
+
+    turning_col1, turning_col2 = st.columns(2)
+    with turning_col1:
+        turning_point_horizontal = st.number_input("Turning-point horizontal offset", value=10)
+    with turning_col2:
+        turning_point_vertical = st.number_input("Turning-point vertical offset", value=-25)
 
 elif graph_type == "Exponential":
     st.subheader("Exponential graph options")
