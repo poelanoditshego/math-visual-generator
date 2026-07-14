@@ -69,6 +69,16 @@ class GraphSettings:
     show_cosine_key_points: bool = False
     show_tangent_key_points: bool = False
 
+    # Circle graph options
+    show_circle_centre: bool = True
+    show_radius: bool = False
+    show_radius_label: bool = True
+    show_diameter: bool = False
+    show_diameter_label: bool = True
+    show_circle_cardinal_points: bool = False
+    show_circle_properties: bool = True
+    additional_circle_angles: list[float] = field(default_factory=list)
+
     # Image settings
     figure_width: float = 10
     figure_height: float = 7

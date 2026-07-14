@@ -1,8 +1,10 @@
 import streamlit as st
 
+from generators.circle import create_circle_graph, parse_circle_equation
 from generators.cosine import create_cosine_graph
 from generators.cubic import create_cubic_graph
 from generators.exponential import create_exponential_graph
+from generators.graph_helpers import format_coordinate
 from generators.hyperbola import create_hyperbola_graph
 from generators.linear import create_linear_graph
 from generators.logarithmic import create_logarithmic_graph
@@ -21,7 +23,7 @@ st.set_page_config(
 st.title("Math Visual Generator")
 st.write(
     "Generate customised linear, quadratic, mixed, exponential, hyperbola, "
-    "cubic, logarithmic, sine, cosine, and tangent graphs."
+    "cubic, logarithmic, sine, cosine, tangent, and circle graphs."
 )
 
 graph_type = st.selectbox(
@@ -37,6 +39,7 @@ graph_type = st.selectbox(
         "Sine",
         "Cosine",
         "Tangent",
+        "Circle",
     ],
 )
 
@@ -68,18 +71,29 @@ else:
         default_equation = "sin(x)"
     elif graph_type == "Cosine":
         default_equation = "cos(x)"
-    else:
+    elif graph_type == "Tangent":
         default_equation = "tan(x)"
+    else:
+        default_equation = "x**2 + y**2 = 25"
 
     equation = st.text_input(
-        "Enter the expression",
+        (
+            "Enter the circle equation"
+            if graph_type == "Circle"
+            else "Enter the expression"
+        ),
         value=default_equation,
         key=f"{graph_type.lower()}_equation",
     )
 
 st.subheader("Graph range")
 
-if graph_type in {"Sine", "Cosine", "Tangent"}:
+if graph_type == "Circle":
+    default_x_min = -6.0
+    default_x_max = 6.0
+    default_y_min = -6.0
+    default_y_max = 6.0
+elif graph_type in {"Sine", "Cosine", "Tangent"}:
     default_x_min = -360.0
     default_x_max = 360.0
     default_y_min = -5.0
@@ -124,7 +138,7 @@ st.subheader("Graph labels")
 
 title = st.text_input(
     "Graph title",
-    value=f"{graph_type} Function",
+    value="Circle" if graph_type == "Circle" else f"{graph_type} Function",
     key=f"{graph_type.lower()}_title",
 )
 
@@ -242,12 +256,14 @@ show_origin_label = st.checkbox(
     value=True,
 )
 
-st.subheader("Graph arrows")
+show_graph_arrows = False
+if graph_type != "Circle":
+    st.subheader("Graph arrows")
 
-show_graph_arrows = st.checkbox(
-    "Show arrows at graph ends",
-    value=True,
-)
+    show_graph_arrows = st.checkbox(
+        "Show arrows at graph ends",
+        value=True,
+    )
 
 st.subheader("Label positions")
 
@@ -317,6 +333,13 @@ show_sine_key_points = False
 show_standard_trig_points = False
 show_cosine_key_points = False
 show_tangent_key_points = False
+show_circle_centre = True
+show_radius = False
+show_radius_label = True
+show_diameter = False
+show_diameter_label = True
+show_circle_cardinal_points = False
+show_circle_properties = True
 turning_point_horizontal = 10
 turning_point_vertical = -25
 
@@ -530,14 +553,55 @@ elif graph_type == "Tangent":
     )
     show_tangent_key_points = show_standard_trig_points
 
+elif graph_type == "Circle":
+    st.subheader("Circle graph options")
+
+    show_circle_centre = st.checkbox(
+        "Show circle centre",
+        value=True,
+    )
+    show_radius = st.checkbox(
+        "Show radius",
+        value=False,
+    )
+    show_radius_label = st.checkbox(
+        "Show radius label",
+        value=True,
+    )
+    show_diameter = st.checkbox(
+        "Show diameter",
+        value=False,
+    )
+    show_diameter_label = st.checkbox(
+        "Show diameter label",
+        value=True,
+    )
+    show_circle_cardinal_points = st.checkbox(
+        "Show circle key points",
+        value=False,
+    )
+    show_circle_properties = st.checkbox(
+        "Show circle properties",
+        value=True,
+    )
+
 
 st.subheader("Additional coordinates")
 
-additional_x_input = st.text_input(
-    "Enter additional x-values separated by commas",
-    value="",
-    placeholder="-2, 1, 4",
-)
+additional_x_input = ""
+additional_circle_angle_input = ""
+if graph_type == "Circle":
+    additional_circle_angle_input = st.text_input(
+        "Additional angles in degrees",
+        value="",
+        placeholder="0, 45, 90, 180",
+    )
+else:
+    additional_x_input = st.text_input(
+        "Enter additional x-values separated by commas",
+        value="",
+        placeholder="-2, 1, 4",
+    )
 
 show_additional_point_labels = st.checkbox(
     "Show additional coordinate labels",
@@ -585,8 +649,11 @@ elif graph_type == "Sine":
 elif graph_type == "Cosine":
     default_output_name = "cosine_graph.png"
 
-else:
+elif graph_type == "Tangent":
     default_output_name = "tangent_graph.png"
+
+else:
+    default_output_name = "circle_graph.png"
 
 output_name = st.text_input(
     "Output filename",
@@ -608,8 +675,21 @@ if st.button("Generate Graph", type="primary"):
     else:
 
         additional_x_values = []
+        additional_circle_angles = []
 
-        if additional_x_input.strip():
+        if graph_type == "Circle" and additional_circle_angle_input.strip():
+            try:
+                additional_circle_angles = [
+                    float(value.strip())
+                    for value in additional_circle_angle_input.split(",")
+                ]
+            except ValueError:
+                st.error(
+                    "Additional circle angles must be numbers separated by commas."
+                )
+                st.stop()
+
+        elif additional_x_input.strip():
             try:
                 additional_x_values = [
                     float(value.strip())
@@ -676,6 +756,13 @@ if st.button("Generate Graph", type="primary"):
             show_standard_trig_points=show_standard_trig_points,
             show_cosine_key_points=show_cosine_key_points,
             show_tangent_key_points=show_tangent_key_points,
+            show_circle_centre=show_circle_centre,
+            show_radius=show_radius,
+            show_radius_label=show_radius_label,
+            show_diameter=show_diameter,
+            show_diameter_label=show_diameter_label,
+            show_circle_cardinal_points=show_circle_cardinal_points,
+            show_circle_properties=show_circle_properties,
             x_intercept_label_offset=(
                 int(x_intercept_horizontal),
                 int(x_intercept_vertical),
@@ -695,6 +782,7 @@ if st.button("Generate Graph", type="primary"):
             ),
 
             additional_x_values=additional_x_values,
+            additional_circle_angles=additional_circle_angles,
             show_additional_point_labels=show_additional_point_labels,
             additional_point_label_offset=(
                 int(additional_label_x_offset),
@@ -760,6 +848,12 @@ if st.button("Generate Graph", type="primary"):
                     settings=settings,
                 )
 
+            elif graph_type == "Circle":
+                create_circle_graph(
+                    equation=equation,
+                    settings=settings,
+                )
+
             else:
                 create_mixed_graph(
                     equations=[
@@ -772,6 +866,15 @@ if st.button("Generate Graph", type="primary"):
             graph_path = f"generated_graphs/{output_name}"
 
             st.success("Graph generated successfully.")
+            if graph_type == "Circle" and settings.show_circle_properties:
+                _, _, _, circle_parameters = parse_circle_equation(equation)
+                st.info(
+                    "Centre: "
+                    f"({format_coordinate(circle_parameters.h)}, "
+                    f"{format_coordinate(circle_parameters.k)})  \n"
+                    f"Radius: {format_coordinate(circle_parameters.radius)}  \n"
+                    f"Diameter: {format_coordinate(circle_parameters.diameter)}"
+                )
             st.image(
                 graph_path,
                 caption=title,
