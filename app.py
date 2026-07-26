@@ -389,6 +389,8 @@ elif graph_type == "Mixed":
     show_turning_point = st.checkbox("Show quadratic turning points", value=True)
     show_axis_of_symmetry = st.checkbox("Show quadratic axes of symmetry", value=True)
     show_horizontal_asymptote = st.checkbox("Show horizontal asymptote", value=True)
+    show_vertical_asymptote = st.checkbox("Show vertical asymptote", value=True)
+    show_asymptote_labels = st.checkbox("Show asymptote labels", value=True)
     horizontal_asymptote_label = st.checkbox("Show asymptote label", value=True)
 
     turning_col1, turning_col2 = st.columns(2)

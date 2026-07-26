@@ -30,39 +30,14 @@ class HyperbolaParameters:
     q: float
 
 
-def parse_hyperbola_expression(
-    equation: str,
-) -> tuple[sp.Symbol, sp.Expr, HyperbolaParameters]:
-    """Validate and extract a, p, and q from a/(x-p)+q."""
+def extract_hyperbola_parameters(
+    expression: sp.Expr,
+    x: sp.Symbol,
+) -> HyperbolaParameters:
+    """Extract a, p, and q when expression is equivalent to a/(x-p)+q."""
 
-    x, expression = parse_arithmetic_expression(
-        equation,
-        graph_name="Hyperbola",
-        example="2/(x - 3) + 4",
-    )
-    terms = sp.Add.make_args(sp.expand(expression))
-    denominator_terms = [term for term in terms if sp.denom(term).has(x)]
-
-    if not denominator_terms:
-        raise ValueError(
-            "The expression is not a hyperbola because x does not appear "
-            "in a denominator."
-        )
-    if len(denominator_terms) != 1:
-        raise ValueError(
-            "Only one constant-over-linear denominator is supported, in the "
-            "form a/(x - p) + q."
-        )
-
-    fraction_term = denominator_terms[0]
-    numerator, denominator = sp.fraction(fraction_term)
-    constant_terms = [term for term in terms if term != fraction_term]
-    if numerator.has(x) or any(term.has(x) for term in constant_terms):
-        raise ValueError(
-            "The numerator must be constant. Use the explicit form "
-            "a/(x - p) + q."
-        )
-
+    expression = sp.cancel(expression)
+    numerator, denominator = sp.fraction(expression)
     try:
         denominator_polynomial = sp.Poly(denominator, x)
     except sp.PolynomialError as error:
@@ -77,17 +52,41 @@ def parse_hyperbola_expression(
 
     denominator_coefficient = denominator_polynomial.coeff_monomial(x)
     denominator_constant = denominator_polynomial.coeff_monomial(1)
-    q_expression = sp.simplify(sum(constant_terms, sp.Integer(0)))
-    a_value = finite_real_number(numerator / denominator_coefficient)
-    p_value = finite_real_number(-denominator_constant / denominator_coefficient)
+    p_expression = -denominator_constant / denominator_coefficient
+    q_expression = sp.simplify(sp.limit(expression, x, sp.oo))
+    a_expression = sp.simplify((expression - q_expression) * (x - p_expression))
+    if a_expression.has(x):
+        raise ValueError(
+            "The expression must be equivalent to a/(x - p) + q."
+        )
+
+    a_value = finite_real_number(a_expression)
+    p_value = finite_real_number(p_expression)
     q_value = finite_real_number(q_expression)
     if a_value is None or p_value is None or q_value is None or abs(a_value) < 1e-12:
         raise ValueError(
             "The hyperbola parameters a, p, and q must be finite real numbers, "
             "and a must not be zero."
         )
+    return HyperbolaParameters(a_value, p_value, q_value)
 
-    return x, expression, HyperbolaParameters(a_value, p_value, q_value)
+
+def parse_hyperbola_expression(
+    equation: str,
+) -> tuple[sp.Symbol, sp.Expr, HyperbolaParameters]:
+    """Validate and extract a, p, and q from a/(x-p)+q."""
+
+    x, expression = parse_arithmetic_expression(
+        equation,
+        graph_name="Hyperbola",
+        example="2/(x - 3) + 4",
+    )
+    if not sp.denom(sp.cancel(expression)).has(x):
+        raise ValueError(
+            "The expression is not a hyperbola because x does not appear "
+            "in a denominator."
+        )
+    return x, expression, extract_hyperbola_parameters(expression, x)
 
 
 def create_hyperbola_graph(equation: str, settings: GraphSettings) -> None:
