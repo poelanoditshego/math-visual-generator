@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from fractions import Fraction
 from string import ascii_uppercase
 
@@ -255,6 +256,69 @@ def finite_real_number(value: sp.Expr | float) -> float | None:
 
 def _coordinate_key(x_value: float, y_value: float) -> tuple[float, float]:
     return (round(float(x_value), 9), round(float(y_value), 9))
+
+
+@dataclass
+class PointRecord:
+    """All known categories and display metadata for one coordinate."""
+
+    x: float
+    y: float
+    is_x_intercept: bool = False
+    is_y_intercept: bool = False
+    is_graph_intersection: bool = False
+    is_other_special_point: bool = False
+    other_label_enabled: bool = False
+    other_offset: tuple[int, int] | None = None
+
+
+class PointRegistry:
+    """Merge duplicate coordinates without losing their point categories."""
+
+    def __init__(self, tolerance: float = 1e-7) -> None:
+        self.tolerance = tolerance
+        self._records: list[PointRecord] = []
+
+    def add(
+        self,
+        x_value: float,
+        y_value: float,
+        *,
+        is_graph_intersection: bool = False,
+        is_other_special_point: bool = False,
+        other_label_enabled: bool = False,
+        other_offset: tuple[int, int] | None = None,
+    ) -> PointRecord:
+        """Add or merge a point, classifying axes from its coordinates."""
+
+        is_x_intercept = abs(float(y_value)) < self.tolerance
+        is_y_intercept = abs(float(x_value)) < self.tolerance
+        record = next(
+            (
+                existing
+                for existing in self._records
+                if abs(existing.x - float(x_value)) < self.tolerance
+                and abs(existing.y - float(y_value)) < self.tolerance
+            ),
+            None,
+        )
+        if record is None:
+            record = PointRecord(
+                x=0.0 if is_y_intercept else float(x_value),
+                y=0.0 if is_x_intercept else float(y_value),
+            )
+            self._records.append(record)
+        record.is_x_intercept |= is_x_intercept
+        record.is_y_intercept |= is_y_intercept
+        record.is_graph_intersection |= is_graph_intersection
+        record.is_other_special_point |= is_other_special_point
+        record.other_label_enabled |= other_label_enabled
+        if record.other_offset is None and other_offset is not None:
+            record.other_offset = other_offset
+        return record
+
+    def records(self) -> list[PointRecord]:
+        return list(self._records)
 
 
 def _capital_name(index: int) -> str:

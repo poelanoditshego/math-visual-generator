@@ -11,6 +11,7 @@ from generators.exponential import horizontal_asymptote
 from generators.hyperbola import HyperbolaParameters, extract_hyperbola_parameters
 from generators.graph_helpers import (
     PointLabeler,
+    PointRegistry,
     AxisInterceptLabeler,
     annotate_axis_intercept,
     annotate_point,
@@ -186,49 +187,26 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
     intercept_labeler = AxisInterceptLabeler(
         settings.axis_intercept_label_style, shared=labeler
     )
-    plotted_points: set[tuple[float, float]] = set()
+    point_registry = PointRegistry(tolerance=1e-7)
     plotted_graphs: list[tuple[np.ndarray, np.ndarray, object, int]] = []
     plotted_asymptotes: set[float] = set()
     difference = expressions[0] - expressions[1]
     intersections: list[tuple[float, float]] = []
-    if settings.show_intersection_points:
-        for intersection_x in find_real_roots(
-            difference, x, settings.x_min, settings.x_max
+    for intersection_x in find_real_roots(
+        difference, x, settings.x_min, settings.x_max
+    ):
+        intersection_y = finite_real_number(
+            expressions[0].subs(x, intersection_x)
+        )
+        if (
+            intersection_y is not None
+            and settings.y_min <= intersection_y <= settings.y_max
         ):
-            intersection_y = finite_real_number(
-                expressions[0].subs(x, intersection_x)
-            )
-            if (
-                intersection_y is not None
-                and settings.y_min <= intersection_y <= settings.y_max
-            ):
-                intersections.append((intersection_x, intersection_y))
-    intersection_keys = {
-        (round(px, 8), round(py, 8)) for px, py in intersections
-    }
-
-    def plot_point(x_value: float, y_value: float, offset: tuple[int, int], show_label: bool) -> None:
-        key = (round(x_value, 8), round(y_value, 8))
-        if key not in plotted_points:
-            ax.scatter(x_value, y_value, zorder=8)
-            plotted_points.add(key)
-        if show_label:
-            annotate_point(ax, labeler, settings, x_value, y_value, offset)
-
-    def plot_intercept(
-        x_value: float, y_value: float, axis: str, offset: tuple[int, int]
-    ) -> None:
-        key = (round(x_value, 8), round(y_value, 8))
-        # Intersection points have higher priority and are rendered later with
-        # the normal point-label style.
-        if key in intersection_keys:
-            return
-        if key not in plotted_points:
-            ax.scatter(x_value, y_value, zorder=8)
-            plotted_points.add(key)
-        if settings.show_point_labels:
-            annotate_axis_intercept(
-                ax, intercept_labeler, settings, x_value, y_value, axis, offset
+            intersections.append((intersection_x, intersection_y))
+            point_registry.add(
+                intersection_x,
+                intersection_y,
+                is_graph_intersection=True,
             )
 
     for function_index, (expression, graph_type) in enumerate(zip(expressions, graph_types)):
@@ -274,19 +252,18 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
             graph_color = line.get_color()
             plotted_graphs.append((section_x, section_y, line, function_index))
 
-        if intercepts_enabled(settings, "x"):
-            for root in find_real_roots(expression, x, settings.x_min, settings.x_max):
-                if settings.y_min <= 0 <= settings.y_max:
-                    plot_intercept(
-                        root, 0.0, "x", settings.x_intercept_label_offset
-                    )
-        if intercepts_enabled(settings, "y"):
-            if settings.x_min <= 0 <= settings.x_max:
-                y_intercept = finite_real_number(expression.subs(x, 0))
-                if y_intercept is not None and settings.y_min <= y_intercept <= settings.y_max:
-                    plot_intercept(
-                        0.0, y_intercept, "y", settings.y_intercept_label_offset
-                    )
+        for root in find_real_roots(
+            expression, x, settings.x_min, settings.x_max
+        ):
+            if settings.y_min <= 0 <= settings.y_max:
+                point_registry.add(root, 0.0)
+        if settings.x_min <= 0 <= settings.x_max:
+            y_intercept = finite_real_number(expression.subs(x, 0))
+            if (
+                y_intercept is not None
+                and settings.y_min <= y_intercept <= settings.y_max
+            ):
+                point_registry.add(0.0, y_intercept)
 
         if graph_type == "Quadratic":
             polynomial = sp.Poly(expression, x)
@@ -296,7 +273,13 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
             if turning_x is not None and turning_y is not None:
                 visible_turning = settings.x_min <= turning_x <= settings.x_max and settings.y_min <= turning_y <= settings.y_max
                 if settings.show_turning_point and visible_turning:
-                    plot_point(turning_x, turning_y, settings.turning_point_label_offset, settings.show_point_labels)
+                    point_registry.add(
+                        turning_x,
+                        turning_y,
+                        is_other_special_point=True,
+                        other_label_enabled=settings.show_point_labels,
+                        other_offset=settings.turning_point_label_offset,
+                    )
                 if settings.show_axis_of_symmetry and settings.x_min <= turning_x <= settings.x_max:
                     ax.axvline(turning_x, linestyle=":", linewidth=1, color=line.get_color(), alpha=0.7)
 
@@ -366,15 +349,69 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
                 continue
             additional_y = finite_real_number(expression.subs(x, additional_x))
             if additional_y is not None and settings.y_min <= additional_y <= settings.y_max:
-                plot_point(float(additional_x), additional_y, settings.additional_point_label_offset, settings.show_additional_point_labels)
+                point_registry.add(
+                    float(additional_x),
+                    additional_y,
+                    is_other_special_point=True,
+                    other_label_enabled=settings.show_additional_point_labels,
+                    other_offset=settings.additional_point_label_offset,
+                )
 
-    for intersection_x, intersection_y in intersections:
-        plot_point(
-            intersection_x,
-            intersection_y,
-            settings.intersection_label_offset,
-            settings.show_point_labels,
+    show_x_intercepts = intercepts_enabled(settings, "x")
+    show_y_intercepts = intercepts_enabled(settings, "y")
+    for point in point_registry.records():
+        visible_as_x_intercept = point.is_x_intercept and show_x_intercepts
+        visible_as_y_intercept = point.is_y_intercept and show_y_intercepts
+        visible_as_intersection = (
+            point.is_graph_intersection and settings.show_intersection_points
         )
+        if not (
+            visible_as_x_intercept
+            or visible_as_y_intercept
+            or visible_as_intersection
+            or point.is_other_special_point
+        ):
+            continue
+
+        ax.scatter(point.x, point.y, zorder=8)
+        if point.is_x_intercept or point.is_y_intercept:
+            if not settings.show_point_labels:
+                continue
+            axis = "x" if point.is_x_intercept else "y"
+            offset = (
+                settings.x_intercept_label_offset
+                if axis == "x"
+                else settings.y_intercept_label_offset
+            )
+            annotate_axis_intercept(
+                ax,
+                intercept_labeler,
+                settings,
+                point.x,
+                point.y,
+                axis,
+                offset,
+            )
+        elif point.is_graph_intersection:
+            if not settings.show_point_labels:
+                continue
+            annotate_point(
+                ax,
+                labeler,
+                settings,
+                point.x,
+                point.y,
+                settings.intersection_label_offset,
+            )
+        elif point.other_label_enabled:
+            annotate_point(
+                ax,
+                labeler,
+                settings,
+                point.x,
+                point.y,
+                point.other_offset or settings.intersection_label_offset,
+            )
 
     if settings.show_grid:
         ax.grid(True, linestyle="--", alpha=0.6)
