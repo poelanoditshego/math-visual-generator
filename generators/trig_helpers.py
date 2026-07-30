@@ -10,8 +10,11 @@ import sympy as sp
 
 from generators.graph_helpers import (
     PointLabeler,
+    AxisInterceptLabeler,
+    annotate_axis_intercept,
     annotate_point,
     annotation_box,
+    configure_cartesian_axes,
     configure_trig_x_ticks,
     draw_graph_end_arrows,
     draw_origin_label,
@@ -20,7 +23,9 @@ from generators.graph_helpers import (
     format_coordinate,
     graph_label,
     graph_legend_is_enabled,
+    intercepts_enabled,
     parse_arithmetic_expression,
+    place_graph_curve_label,
 )
 from models.graph_settings import GraphSettings
 
@@ -240,22 +245,12 @@ def create_trig_graph(
             else ""
         ),
     )
-    plotted_points: set[tuple[float, float]] = set()
-
-    for spine in ax.spines.values():
-        spine.set_visible(settings.show_border)
-    ax.tick_params(
-        axis="both",
-        which="both",
-        bottom=settings.show_tick_marks,
-        top=settings.show_tick_marks,
-        left=settings.show_tick_marks,
-        right=settings.show_tick_marks,
-        labelbottom=settings.show_tick_labels,
-        labeltop=False,
-        labelleft=settings.show_tick_labels,
-        labelright=False,
+    intercept_labeler = AxisInterceptLabeler(
+        settings.axis_intercept_label_style,
+        x_suffix=labeler.x_suffix,
+        shared=labeler,
     )
+    plotted_points: set[tuple[float, float]] = set()
 
     function_label = (
         graph_label(expression, 0, settings.graph_label_style)
@@ -263,9 +258,6 @@ def create_trig_graph(
         else None
     )
     (graph_line,) = ax.plot(x_values, y_values, linewidth=2, label=function_label)
-    if settings.show_axes:
-        ax.axhline(0, linewidth=1)
-        ax.axvline(0, linewidth=1)
     if settings.show_grid:
         ax.grid(True, linestyle="--", alpha=0.6)
 
@@ -299,6 +291,16 @@ def create_trig_graph(
             plotted_points.add(key)
         if show_label:
             annotate_point(ax, labeler, settings, x_value, y_value, offset)
+
+    def plot_intercept(x_value, y_value, axis, offset):
+        key = (round(x_value, 9), round(y_value, 9))
+        if key not in plotted_points:
+            ax.scatter(x_value, y_value, zorder=7)
+            plotted_points.add(key)
+        if settings.show_point_labels:
+            annotate_axis_intercept(
+                ax, intercept_labeler, settings, x_value, y_value, axis, offset
+            )
 
     full_angle = 2 * np.pi if settings.trig_angle_mode == "Radians" else 360.0
     quarter_angle = full_angle / 4
@@ -337,7 +339,7 @@ def create_trig_graph(
                     extreme_labels,
                 )
 
-    if settings.show_intercepts:
+    if intercepts_enabled(settings, "x"):
         target = -parameters.d / parameters.a
         if abs(target) <= 1 + 1e-12:
             target = float(np.clip(target, -1, 1))
@@ -358,20 +360,15 @@ def create_trig_graph(
                     )
                 )
             for root in unique_values(roots):
-                plot_point(
-                    root,
-                    0.0,
-                    settings.x_intercept_label_offset,
-                    settings.show_point_labels,
+                plot_intercept(
+                    root, 0.0, "x", settings.x_intercept_label_offset
                 )
+    if intercepts_enabled(settings, "y"):
         if settings.x_min <= 0 <= settings.x_max:
             y_intercept = evaluate_at(0)
             if y_intercept is not None and settings.y_min <= y_intercept <= settings.y_max:
-                plot_point(
-                    0.0,
-                    y_intercept,
-                    settings.y_intercept_label_offset,
-                    settings.show_point_labels,
+                plot_intercept(
+                    0.0, y_intercept, "y", settings.y_intercept_label_offset
                 )
 
     show_key_points = settings.show_standard_trig_points or (
@@ -419,12 +416,9 @@ def create_trig_graph(
 
     ax.set_xlim(settings.x_min, settings.x_max)
     ax.set_ylim(settings.y_min, settings.y_max)
-    ax.set_xlabel(settings.x_label)
-    ax.set_ylabel(settings.y_label)
     if settings.show_title:
         ax.set_title(settings.title or f"{trig_name} Function")
 
-    draw_origin_label(ax, settings)
     configure_trig_x_ticks(
         ax,
         settings.x_min,
@@ -439,12 +433,17 @@ def create_trig_graph(
         ),
         show_degree_symbols=settings.show_degree_symbols,
     )
+    configure_cartesian_axes(ax, settings)
+    draw_origin_label(ax, settings)
     draw_graph_end_arrows(
         ax,
         x_values,
         y_values,
         graph_line.get_color(),
         settings,
+    )
+    place_graph_curve_label(
+        ax, x_values, y_values, graph_line.get_color(), settings, expression
     )
     if graph_legend_is_enabled(settings):
         ax.legend()

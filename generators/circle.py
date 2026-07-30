@@ -10,12 +10,17 @@ import sympy as sp
 
 from generators.graph_helpers import (
     PointLabeler,
+    AxisInterceptLabeler,
+    annotate_axis_intercept,
     annotate_point,
+    configure_cartesian_axes,
     annotation_box,
     draw_origin_label,
     finite_real_number,
     format_coordinate,
     graph_legend_is_enabled,
+    intercepts_enabled,
+    place_graph_curve_label,
 )
 from models.graph_settings import GraphSettings
 
@@ -247,22 +252,10 @@ def create_circle_graph(equation: str, settings: GraphSettings) -> None:
     output_path = output_directory / settings.output_name
     _, ax = plt.subplots(figsize=(settings.figure_width, settings.figure_height))
     labeler = PointLabeler(settings.point_label_style)
-    plotted_points: set[tuple[float, float]] = set()
-
-    for spine in ax.spines.values():
-        spine.set_visible(settings.show_border)
-    ax.tick_params(
-        axis="both",
-        which="both",
-        bottom=settings.show_tick_marks,
-        top=settings.show_tick_marks,
-        left=settings.show_tick_marks,
-        right=settings.show_tick_marks,
-        labelbottom=settings.show_tick_labels,
-        labeltop=False,
-        labelleft=settings.show_tick_labels,
-        labelright=False,
+    intercept_labeler = AxisInterceptLabeler(
+        settings.axis_intercept_label_style, shared=labeler
     )
+    plotted_points: set[tuple[float, float]] = set()
 
     circle_label = (
         _circle_graph_label(circle_equation, settings.graph_label_style)
@@ -270,9 +263,6 @@ def create_circle_graph(equation: str, settings: GraphSettings) -> None:
         else None
     )
     (circle_line,) = ax.plot(x_values, y_values, linewidth=2, label=circle_label)
-    if settings.show_axes:
-        ax.axhline(0, linewidth=1)
-        ax.axvline(0, linewidth=1)
     if settings.show_grid:
         ax.grid(True, linestyle="--", alpha=0.6)
 
@@ -296,6 +286,17 @@ def create_circle_graph(equation: str, settings: GraphSettings) -> None:
         if show_label:
             annotate_point(ax, labeler, settings, x_value, y_value, offset)
 
+    def plot_intercept(point, axis, offset):
+        x_value, y_value = point
+        key = (round(float(x_value), 9), round(float(y_value), 9))
+        if key not in plotted_points:
+            ax.scatter(x_value, y_value, zorder=7)
+            plotted_points.add(key)
+        if settings.show_point_labels:
+            annotate_axis_intercept(
+                ax, intercept_labeler, settings, x_value, y_value, axis, offset
+            )
+
     centre = (parameters.h, parameters.k)
     if settings.show_circle_centre and is_visible(centre):
         plot_point(
@@ -315,21 +316,18 @@ def create_circle_graph(equation: str, settings: GraphSettings) -> None:
                     settings.show_point_labels,
                 )
 
-    if settings.show_intercepts:
-        x_intercepts, y_intercepts = calculate_circle_intercepts(parameters)
+    x_intercepts, y_intercepts = calculate_circle_intercepts(parameters)
+    if intercepts_enabled(settings, "x"):
         for point in x_intercepts:
             if is_visible(point):
-                plot_point(
-                    point,
-                    settings.x_intercept_label_offset,
-                    settings.show_point_labels,
+                plot_intercept(
+                    point, "x", settings.x_intercept_label_offset
                 )
+    if intercepts_enabled(settings, "y"):
         for point in y_intercepts:
             if is_visible(point):
-                plot_point(
-                    point,
-                    settings.y_intercept_label_offset,
-                    settings.show_point_labels,
+                plot_intercept(
+                    point, "y", settings.y_intercept_label_offset
                 )
 
     for point in calculate_circle_angle_points(
@@ -416,12 +414,26 @@ def create_circle_graph(equation: str, settings: GraphSettings) -> None:
     ax.set_xlim(settings.x_min, settings.x_max)
     ax.set_ylim(settings.y_min, settings.y_max)
     ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel(settings.x_label)
-    ax.set_ylabel(settings.y_label)
+    configure_cartesian_axes(ax, settings)
     if settings.show_title:
         ax.set_title(settings.title or "Circle")
 
     draw_origin_label(ax, settings)
+    # A circle is implicit rather than y=f(x), so its full direct label is the
+    # original equation while notation/name styles still use C.
+    if settings.graph_curve_label_style != "No label":
+        direct_expression = circle_equation
+        direct_label = None
+        if settings.graph_curve_label_style == "Full equation":
+            direct_label = (
+                f"${sp.latex(circle_equation.lhs)}"
+                f" = {sp.latex(circle_equation.rhs)}$"
+            )
+        place_graph_curve_label(
+            ax, x_values, y_values, circle_line.get_color(), settings,
+            direct_expression,
+            label_override=direct_label,
+        )
     if graph_legend_is_enabled(settings):
         ax.legend()
 

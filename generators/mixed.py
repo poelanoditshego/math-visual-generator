@@ -11,8 +11,11 @@ from generators.exponential import horizontal_asymptote
 from generators.hyperbola import HyperbolaParameters, extract_hyperbola_parameters
 from generators.graph_helpers import (
     PointLabeler,
+    AxisInterceptLabeler,
+    annotate_axis_intercept,
     annotate_point,
     annotation_box,
+    configure_cartesian_axes,
     draw_graph_end_arrows,
     draw_origin_label,
     finite_function_values,
@@ -20,8 +23,10 @@ from generators.graph_helpers import (
     format_coordinate,
     graph_label,
     graph_legend_is_enabled,
+    intercepts_enabled,
     is_supported_exponential,
     parse_arithmetic_expression,
+    place_graph_curve_label,
 )
 from models.graph_settings import GraphSettings
 
@@ -178,19 +183,29 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
     output_path = output_directory / settings.output_name
     _, ax = plt.subplots(figsize=(settings.figure_width, settings.figure_height))
     labeler = PointLabeler(settings.point_label_style)
-    plotted_points: set[tuple[float, float]] = set()
-    plotted_graphs: list[tuple[np.ndarray, np.ndarray, object]] = []
-    plotted_asymptotes: set[float] = set()
-
-    for spine in ax.spines.values():
-        spine.set_visible(settings.show_border)
-    ax.tick_params(
-        axis="both", which="both",
-        bottom=settings.show_tick_marks, top=settings.show_tick_marks,
-        left=settings.show_tick_marks, right=settings.show_tick_marks,
-        labelbottom=settings.show_tick_labels, labeltop=False,
-        labelleft=settings.show_tick_labels, labelright=False,
+    intercept_labeler = AxisInterceptLabeler(
+        settings.axis_intercept_label_style, shared=labeler
     )
+    plotted_points: set[tuple[float, float]] = set()
+    plotted_graphs: list[tuple[np.ndarray, np.ndarray, object, int]] = []
+    plotted_asymptotes: set[float] = set()
+    difference = expressions[0] - expressions[1]
+    intersections: list[tuple[float, float]] = []
+    if settings.show_intersection_points:
+        for intersection_x in find_real_roots(
+            difference, x, settings.x_min, settings.x_max
+        ):
+            intersection_y = finite_real_number(
+                expressions[0].subs(x, intersection_x)
+            )
+            if (
+                intersection_y is not None
+                and settings.y_min <= intersection_y <= settings.y_max
+            ):
+                intersections.append((intersection_x, intersection_y))
+    intersection_keys = {
+        (round(px, 8), round(py, 8)) for px, py in intersections
+    }
 
     def plot_point(x_value: float, y_value: float, offset: tuple[int, int], show_label: bool) -> None:
         key = (round(x_value, 8), round(y_value, 8))
@@ -199,6 +214,22 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
             plotted_points.add(key)
         if show_label:
             annotate_point(ax, labeler, settings, x_value, y_value, offset)
+
+    def plot_intercept(
+        x_value: float, y_value: float, axis: str, offset: tuple[int, int]
+    ) -> None:
+        key = (round(x_value, 8), round(y_value, 8))
+        # Intersection points have higher priority and are rendered later with
+        # the normal point-label style.
+        if key in intersection_keys:
+            return
+        if key not in plotted_points:
+            ax.scatter(x_value, y_value, zorder=8)
+            plotted_points.add(key)
+        if settings.show_point_labels:
+            annotate_axis_intercept(
+                ax, intercept_labeler, settings, x_value, y_value, axis, offset
+            )
 
     for function_index, (expression, graph_type) in enumerate(zip(expressions, graph_types)):
         hyperbola_parameters: HyperbolaParameters | None = None
@@ -241,16 +272,21 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
                 label=label if section_index == 0 else None,
             )
             graph_color = line.get_color()
-            plotted_graphs.append((section_x, section_y, line))
+            plotted_graphs.append((section_x, section_y, line, function_index))
 
-        if settings.show_intercepts:
+        if intercepts_enabled(settings, "x"):
             for root in find_real_roots(expression, x, settings.x_min, settings.x_max):
                 if settings.y_min <= 0 <= settings.y_max:
-                    plot_point(root, 0.0, settings.x_intercept_label_offset, settings.show_point_labels)
+                    plot_intercept(
+                        root, 0.0, "x", settings.x_intercept_label_offset
+                    )
+        if intercepts_enabled(settings, "y"):
             if settings.x_min <= 0 <= settings.x_max:
                 y_intercept = finite_real_number(expression.subs(x, 0))
                 if y_intercept is not None and settings.y_min <= y_intercept <= settings.y_max:
-                    plot_point(0.0, y_intercept, settings.y_intercept_label_offset, settings.show_point_labels)
+                    plot_intercept(
+                        0.0, y_intercept, "y", settings.y_intercept_label_offset
+                    )
 
         if graph_type == "Quadratic":
             polynomial = sp.Poly(expression, x)
@@ -332,28 +368,45 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
             if additional_y is not None and settings.y_min <= additional_y <= settings.y_max:
                 plot_point(float(additional_x), additional_y, settings.additional_point_label_offset, settings.show_additional_point_labels)
 
-    if settings.show_intersection_points:
-        difference = expressions[0] - expressions[1]
-        for intersection_x in find_real_roots(difference, x, settings.x_min, settings.x_max):
-            intersection_y = finite_real_number(expressions[0].subs(x, intersection_x))
-            if intersection_y is not None and settings.y_min <= intersection_y <= settings.y_max:
-                plot_point(intersection_x, intersection_y, settings.intersection_label_offset, settings.show_point_labels)
+    for intersection_x, intersection_y in intersections:
+        plot_point(
+            intersection_x,
+            intersection_y,
+            settings.intersection_label_offset,
+            settings.show_point_labels,
+        )
 
-    if settings.show_axes:
-        ax.axhline(0, linewidth=1)
-        ax.axvline(0, linewidth=1)
     if settings.show_grid:
         ax.grid(True, linestyle="--", alpha=0.6)
     ax.set_xlim(settings.x_min, settings.x_max)
     ax.set_ylim(settings.y_min, settings.y_max)
-    ax.set_xlabel(settings.x_label)
-    ax.set_ylabel(settings.y_label)
+    configure_cartesian_axes(ax, settings)
     if settings.show_title:
         ax.set_title(settings.title or "Mixed Functions")
 
     draw_origin_label(ax, settings)
-    for graph_x, graph_y, line in plotted_graphs:
+    for graph_x, graph_y, line, _function_index in plotted_graphs:
         draw_graph_end_arrows(ax, graph_x, graph_y, line.get_color(), settings)
+    # Each function receives one direct label even when it has multiple branches.
+    for function_index, expression in enumerate(expressions):
+        matching = [
+            (gx, gy, line)
+            for gx, gy, line, plotted_function_index in plotted_graphs
+            if plotted_function_index == function_index
+        ]
+        if matching:
+            combined_x = np.concatenate([item[0] for item in matching])
+            combined_y = np.concatenate([item[1] for item in matching])
+            place_graph_curve_label(
+                ax,
+                combined_x,
+                combined_y,
+                matching[0][2].get_color(),
+                settings,
+                expression,
+                function_index,
+                excluded_points=intersections,
+            )
     if graph_legend_is_enabled(settings):
         ax.legend()
     plt.tight_layout()

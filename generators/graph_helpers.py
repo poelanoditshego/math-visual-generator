@@ -7,7 +7,7 @@ from string import ascii_uppercase
 import numpy as np
 import sympy as sp
 from matplotlib.axes import Axes
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FixedFormatter, FuncFormatter
 
 from models.graph_settings import GraphSettings
 
@@ -25,6 +25,23 @@ GRAPH_LABEL_STYLES = (
     "Function name only",
     "No graph label",
 )
+
+GRAPH_CURVE_LABEL_STYLES = (
+    "Function notation",
+    "Function name only",
+    "Full equation",
+    "No label",
+)
+
+AXIS_INTERCEPT_LABEL_STYLES = (
+    "Full coordinates",
+    "Axis value only",
+    "Capital letter and coordinates",
+    "Capital letter only",
+    "No label",
+)
+
+AXIS_STYLES = ("Border axes", "Central Cartesian axes")
 
 _SAFE_EXPRESSION = re.compile(r"[0-9A-Za-z_+\-*/(),.\s]+")
 
@@ -254,18 +271,23 @@ def _capital_name(index: int) -> str:
 class PointLabeler:
     """Assign stable point names and prevent duplicate coordinate annotations."""
 
-    def __init__(self, style: str, x_suffix: str = "") -> None:
+    def __init__(
+        self,
+        style: str,
+        x_suffix: str = "",
+        shared: PointLabeler | None = None,
+    ) -> None:
         self.style = style
         self.x_suffix = x_suffix
-        self._letters: dict[tuple[float, float], str] = {}
-        self._annotated: set[tuple[float, float]] = set()
+        self._letters = shared._letters if shared is not None else {}
+        self._annotated = shared._annotated if shared is not None else set()
 
     def format_label(self, x_value: float, y_value: float) -> str | None:
         if self.style == "No label":
             return None
 
         coordinates = (
-            f"({format_coordinate(x_value)}{self.x_suffix}, "
+            f"({format_coordinate(x_value)}{self.x_suffix}; "
             f"{format_coordinate(y_value)})"
         )
         if self.style == "Coordinates only":
@@ -290,6 +312,67 @@ class PointLabeler:
         return True
 
 
+class AxisInterceptLabeler(PointLabeler):
+    """Format x/y intercepts independently from other special points."""
+
+    def format_axis_label(
+        self,
+        x_value: float,
+        y_value: float,
+        axis: str,
+    ) -> str | None:
+        if self.style == "No label":
+            return None
+        if self.style == "Axis value only":
+            return format_coordinate(x_value if axis == "x" else y_value)
+
+        coordinates = (
+            f"({format_coordinate(x_value)}{self.x_suffix}; "
+            f"{format_coordinate(y_value)})"
+        )
+        if self.style == "Full coordinates":
+            return coordinates
+        key = _coordinate_key(x_value, y_value)
+        letter = self._letters.setdefault(key, _capital_name(len(self._letters)))
+        if self.style == "Capital letter only":
+            return letter
+        return f"{letter}{coordinates}"
+
+
+def intercepts_enabled(settings: GraphSettings, axis: str) -> bool:
+    """Return the independent setting, respecting the legacy override."""
+
+    if settings.show_intercepts is not None:
+        return settings.show_intercepts
+    return (
+        settings.show_x_intercepts
+        if axis == "x"
+        else settings.show_y_intercepts
+    )
+
+
+def integer_ticks(min_value: float, max_value: float) -> np.ndarray:
+    """Return every integer within possibly-decimal visible boundaries."""
+
+    return np.arange(np.ceil(min_value), np.floor(max_value) + 1, 1, dtype=float)
+
+
+def configure_integer_ticks(ax: Axes, settings: GraphSettings) -> None:
+    """Apply exact one-unit integer ticks and labels when requested."""
+
+    if not settings.use_integer_unit_ticks:
+        return
+    ax.set_xticks(integer_ticks(settings.x_min, settings.x_max))
+    ax.set_yticks(integer_ticks(settings.y_min, settings.y_max))
+    formatter = FuncFormatter(
+        lambda value, _position: format_coordinate(value)
+        if abs(value - round(value)) < 1e-9
+        else ""
+    )
+    ax.xaxis.set_major_formatter(formatter)
+    ax.yaxis.set_major_formatter(formatter)
+
+
 def graph_label(expression: sp.Expr, function_index: int, style: str) -> str | None:
     """Build a Matplotlib legend label for a plotted function."""
 
@@ -304,6 +387,90 @@ def graph_label(expression: sp.Expr, function_index: int, style: str) -> str | N
     if style == "Function name only":
         return f"${function_name}$"
     return f"$y = {equation}$"
+
+
+def graph_curve_label(
+    expression: sp.Expr,
+    function_index: int,
+    style: str,
+) -> str | None:
+    """Build text for a label placed directly beside a curve."""
+
+    if style == "No label":
+        return None
+    name = _capital_name(function_index + 5).lower()
+    if style == "Function name only":
+        return f"${name}$"
+    if style == "Function notation":
+        return f"${name}(x)$"
+    return f"${name}(x) = {sp.latex(expression)}$"
+
+
+def place_graph_curve_label(
+    ax: Axes,
+    x_values: np.ndarray,
+    y_values: np.ndarray,
+    color: str,
+    settings: GraphSettings,
+    expression: sp.Expr,
+    function_index: int = 0,
+    *,
+    excluded_points: list[tuple[float, float]] | None = None,
+    label_override: str | None = None,
+) -> None:
+    """Place one colour-matched label on a safe visible part of a curve."""
+
+    label = label_override or graph_curve_label(
+        expression, function_index, settings.graph_curve_label_style
+    )
+    if not label:
+        return
+    x_values = np.asarray(x_values, dtype=float)
+    y_values = np.asarray(y_values, dtype=float)
+    visible = (
+        np.isfinite(x_values)
+        & np.isfinite(y_values)
+        & (x_values >= settings.x_min)
+        & (x_values <= settings.x_max)
+        & (y_values >= settings.y_min)
+        & (y_values <= settings.y_max)
+    )
+    indices = np.flatnonzero(visible)
+    if not indices.size:
+        return
+
+    # Prefer the right-hand interior of the curve and stay away from axes and
+    # known special points. This also naturally selects just one branch.
+    targets = (0.72, 0.62, 0.82, 0.5, 0.35)
+    candidates = [indices[min(len(indices) - 1, int(t * (len(indices) - 1)))] for t in targets]
+    excluded = excluded_points or []
+    x_span = max(settings.x_max - settings.x_min, 1e-9)
+    y_span = max(settings.y_max - settings.y_min, 1e-9)
+
+    def score(index: int) -> float:
+        x_value, y_value = x_values[index], y_values[index]
+        axis_distance = min(abs(x_value) / x_span, abs(y_value) / y_span)
+        point_distance = min(
+            (
+                ((x_value - px) / x_span) ** 2
+                + ((y_value - py) / y_span) ** 2
+            ) ** 0.5
+            for px, py in excluded
+        ) if excluded else 1.0
+        return axis_distance + point_distance
+
+    index = max(candidates, key=score)
+    ax.annotate(
+        label,
+        (x_values[index], y_values[index]),
+        textcoords="offset points",
+        xytext=(7, 7),
+        color=color,
+        fontsize=settings.annotation_font_size,
+        bbox=annotation_box(settings),
+        annotation_clip=True,
+        zorder=9,
+    )
 
 
 def annotation_box(settings: GraphSettings) -> dict[str, object] | None:
@@ -352,6 +519,36 @@ def annotate_point(
     )
 
 
+def annotate_axis_intercept(
+    ax: Axes,
+    labeler: AxisInterceptLabeler,
+    settings: GraphSettings,
+    x_value: float,
+    y_value: float,
+    axis: str,
+    offset: tuple[int, int],
+) -> None:
+    """Annotate an intercept using the dedicated axis-intercept style."""
+
+    label = labeler.format_axis_label(x_value, y_value, axis)
+    if not label or not labeler.mark_annotated(x_value, y_value):
+        return
+    if labeler.style == "Axis value only":
+        offset = (0, -16) if axis == "x" else (7, 0)
+    ax.annotate(
+        label,
+        (x_value, y_value),
+        textcoords="offset points",
+        xytext=offset,
+        ha="center" if axis == "x" else "left",
+        va="top" if axis == "x" else "center",
+        fontsize=settings.annotation_font_size,
+        bbox=annotation_box(settings),
+        arrowprops=annotation_arrow(settings),
+        zorder=10,
+    )
+
+
 def draw_origin_label(ax: Axes, settings: GraphSettings) -> None:
     """Draw one unambiguous zero at the crossing of visible axes."""
 
@@ -363,12 +560,22 @@ def draw_origin_label(ax: Axes, settings: GraphSettings) -> None:
     )
     if not origin_is_visible:
         return
+    # An intercept or intersection annotation at the origin already supplies
+    # an unambiguous label; do not add a second custom zero on top of it.
+    if any(
+        getattr(text, "xy", None) is not None
+        and np.allclose(text.xy, (0, 0), atol=1e-9)
+        and bool(text.get_text())
+        for text in ax.texts
+    ):
+        return
 
     if settings.show_tick_labels:
         hide_zero = FuncFormatter(
             lambda value, _position: "" if abs(value) < 1e-9 else format_coordinate(value)
         )
-        ax.xaxis.set_major_formatter(hide_zero)
+        if not isinstance(ax.xaxis.get_major_formatter(), FixedFormatter):
+            ax.xaxis.set_major_formatter(hide_zero)
         ax.yaxis.set_major_formatter(hide_zero)
 
     x_offset = 6 if settings.x_min == 0 else -8
@@ -383,6 +590,136 @@ def draw_origin_label(ax: Axes, settings: GraphSettings) -> None:
         fontsize=settings.annotation_font_size,
         zorder=11,
     )
+
+
+def configure_cartesian_axes(ax: Axes, settings: GraphSettings) -> None:
+    """Configure border or school-style Cartesian axes in one shared place."""
+
+    if settings.axis_style not in AXIS_STYLES:
+        raise ValueError(f"Axis style must be one of: {', '.join(AXIS_STYLES)}.")
+
+    configure_integer_ticks(ax, settings)
+    central = settings.axis_style == "Central Cartesian axes"
+    x_origin_visible = settings.x_min <= 0 <= settings.x_max
+    y_origin_visible = settings.y_min <= 0 <= settings.y_max
+
+    # Reset positions so the helper is safe to call on reused axes.
+    ax.spines["left"].set_position(("outward", 0))
+    ax.spines["bottom"].set_position(("outward", 0))
+    for spine in ax.spines.values():
+        spine.set_visible(settings.show_border)
+
+    if central and settings.show_axes:
+        ax.spines["left"].set_position(("data", 0) if x_origin_visible else ("axes", 0))
+        ax.spines["bottom"].set_position(
+            ("data", 0) if y_origin_visible else ("axes", 0)
+        )
+        ax.spines["left"].set_visible(True)
+        ax.spines["bottom"].set_visible(True)
+        ax.spines["right"].set_visible(False)
+        ax.spines["top"].set_visible(False)
+        ax.xaxis.set_ticks_position("bottom")
+        ax.yaxis.set_ticks_position("left")
+    elif settings.show_axes:
+        if y_origin_visible:
+            ax.axhline(0, linewidth=1, color="black", zorder=3)
+        if x_origin_visible:
+            ax.axvline(0, linewidth=1, color="black", zorder=3)
+
+    axis_content_visible = settings.show_axes or not central
+    ticks_visible = settings.show_tick_marks and axis_content_visible
+    labels_visible = settings.show_tick_labels and axis_content_visible
+    ax.tick_params(
+        axis="both",
+        which="both",
+        bottom=ticks_visible,
+        top=ticks_visible and settings.show_border and not central,
+        left=ticks_visible,
+        right=ticks_visible and settings.show_border and not central,
+        labelbottom=labels_visible,
+        labeltop=False,
+        labelleft=labels_visible,
+        labelright=False,
+    )
+
+    # Central axes should show at most one normal zero. A custom origin label
+    # suppresses both normal zero ticks; otherwise the y-axis zero is hidden.
+    if central and labels_visible and x_origin_visible and y_origin_visible:
+        hide_zero = FuncFormatter(
+            lambda value, _position: (
+                "" if abs(value) < 1e-9 else format_coordinate(value)
+            )
+        )
+        ax.yaxis.set_major_formatter(hide_zero)
+        if (
+            settings.show_origin_label
+            and not isinstance(ax.xaxis.get_major_formatter(), FixedFormatter)
+        ):
+            ax.xaxis.set_major_formatter(hide_zero)
+
+    if not settings.show_axes:
+        if central:
+            for spine in ax.spines.values():
+                spine.set_visible(settings.show_border)
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        return
+
+    # Put labels beside the axes they name. Standard Matplotlib xlabel/ylabel
+    # positions can make a central horizontal axis look like it is labelled
+    # "y" and a central vertical axis look like it is labelled "x".
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    x_span = settings.x_max - settings.x_min
+    y_span = settings.y_max - settings.y_min
+    arrow_x = settings.x_max - 0.018 * x_span
+    arrow_y = settings.y_max - 0.018 * y_span
+    horizontal_axis_y = 0 if y_origin_visible else settings.y_min
+    vertical_axis_x = 0 if x_origin_visible else settings.x_min
+
+    if central and settings.show_axis_arrows:
+        ax.annotate(
+            "",
+            xy=(arrow_x, horizontal_axis_y),
+            xytext=(arrow_x - 0.045 * x_span, horizontal_axis_y),
+            arrowprops={"arrowstyle": "-|>", "color": "black", "linewidth": 1.2},
+            annotation_clip=False,
+            zorder=12,
+        )
+        ax.annotate(
+            "",
+            xy=(vertical_axis_x, arrow_y),
+            xytext=(vertical_axis_x, arrow_y - 0.06 * y_span),
+            arrowprops={"arrowstyle": "-|>", "color": "black", "linewidth": 1.2},
+            annotation_clip=False,
+            zorder=12,
+        )
+
+    if settings.show_axis_labels:
+        horizontal_label = settings.x_axis_label if central else settings.x_label
+        vertical_label = settings.y_axis_label if central else settings.y_label
+        ax.annotate(
+            horizontal_label,
+            (arrow_x, horizontal_axis_y),
+            textcoords="offset points",
+            xytext=(-2, 8),
+            ha="right",
+            va="bottom",
+            fontsize=settings.annotation_font_size + 1,
+            annotation_clip=False,
+            zorder=13,
+        )
+        ax.annotate(
+            vertical_label,
+            (vertical_axis_x, arrow_y),
+            textcoords="offset points",
+            xytext=(8, -2),
+            ha="left",
+            va="top",
+            fontsize=settings.annotation_font_size + 1,
+            annotation_clip=False,
+            zorder=13,
+        )
 
 
 def draw_graph_end_arrows(

@@ -22,11 +22,17 @@ class GraphSettings:
     show_grid: bool = True
     show_axes: bool = True
     show_equation: bool = True
-    show_intercepts: bool = True
+    # ``show_intercepts`` is retained as an optional compatibility override for
+    # callers created before x/y intercept controls were separated.
+    show_intercepts: bool | None = None
+    show_x_intercepts: bool = True
+    show_y_intercepts: bool = True
     show_intersection_points: bool = True
     show_point_labels: bool = True
     point_label_style: str = "Coordinates only"
     graph_label_style: str = "Full equation"
+    graph_curve_label_style: str = "No label"
+    axis_intercept_label_style: str = "Full coordinates"
     show_origin_label: bool = True
     show_graph_arrows: bool = True
 
@@ -104,6 +110,12 @@ class GraphSettings:
     show_border: bool = True
     show_tick_marks: bool = True
     show_tick_labels: bool = True
+    use_integer_unit_ticks: bool = True
+    axis_style: str = "Border axes"
+    show_axis_arrows: bool = True
+    show_axis_labels: bool = True
+    x_axis_label: str = "x"
+    y_axis_label: str = "y"
 
     show_title: bool = True
     show_legend: bool = True

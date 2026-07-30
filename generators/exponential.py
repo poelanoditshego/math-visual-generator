@@ -8,7 +8,10 @@ import sympy as sp
 
 from generators.graph_helpers import (
     PointLabeler,
+    AxisInterceptLabeler,
+    annotate_axis_intercept,
     annotate_point,
+    configure_cartesian_axes,
     annotation_box,
     draw_graph_end_arrows,
     draw_origin_label,
@@ -17,9 +20,11 @@ from generators.graph_helpers import (
     format_coordinate,
     graph_label,
     graph_legend_is_enabled,
+    intercepts_enabled,
     is_supported_exponential,
     parse_arithmetic_expression,
     supported_exponential_powers,
+    place_graph_curve_label,
 )
 from models.graph_settings import GraphSettings
 
@@ -110,22 +115,10 @@ def create_exponential_graph(equation: str, settings: GraphSettings) -> None:
 
     _, ax = plt.subplots(figsize=(settings.figure_width, settings.figure_height))
     labeler = PointLabeler(settings.point_label_style)
-    plotted_points: set[tuple[float, float]] = set()
-
-    for spine in ax.spines.values():
-        spine.set_visible(settings.show_border)
-    ax.tick_params(
-        axis="both",
-        which="both",
-        bottom=settings.show_tick_marks,
-        top=settings.show_tick_marks,
-        left=settings.show_tick_marks,
-        right=settings.show_tick_marks,
-        labelbottom=settings.show_tick_labels,
-        labeltop=False,
-        labelleft=settings.show_tick_labels,
-        labelright=False,
+    intercept_labeler = AxisInterceptLabeler(
+        settings.axis_intercept_label_style, shared=labeler
     )
+    plotted_points: set[tuple[float, float]] = set()
 
     function_label = None
     if settings.show_equation:
@@ -137,9 +130,6 @@ def create_exponential_graph(equation: str, settings: GraphSettings) -> None:
         label=function_label,
     )
 
-    if settings.show_axes:
-        ax.axhline(0, linewidth=1)
-        ax.axvline(0, linewidth=1)
     if settings.show_grid:
         ax.grid(True, linestyle="--", alpha=0.6)
 
@@ -176,7 +166,7 @@ def create_exponential_graph(equation: str, settings: GraphSettings) -> None:
         if show_label:
             annotate_point(ax, labeler, settings, x_value, y_value, offset)
 
-    if settings.show_intercepts:
+    if intercepts_enabled(settings, "x"):
         try:
             x_intercepts = sp.solve(sp.Eq(expression, 0), x)
         except (NotImplementedError, ValueError, TypeError):
@@ -184,25 +174,32 @@ def create_exponential_graph(equation: str, settings: GraphSettings) -> None:
         for root in x_intercepts:
             root_value = finite_real_number(root)
             if root_value is not None and settings.x_min <= root_value <= settings.x_max:
-                plot_point(
-                    root_value,
-                    0.0,
-                    settings.x_intercept_label_offset,
-                    settings.show_point_labels,
-                )
+                point_key = (round(root_value, 9), 0.0)
+                if point_key not in plotted_points:
+                    ax.scatter(root_value, 0.0, zorder=7)
+                    plotted_points.add(point_key)
+                if settings.show_point_labels:
+                    annotate_axis_intercept(
+                        ax, intercept_labeler, settings, root_value, 0.0,
+                        "x", settings.x_intercept_label_offset,
+                    )
 
+    if intercepts_enabled(settings, "y"):
         if settings.x_min <= 0 <= settings.x_max:
             y_intercept = finite_real_number(expression.subs(x, 0))
             if (
                 y_intercept is not None
                 and settings.y_min <= y_intercept <= settings.y_max
             ):
-                plot_point(
-                    0.0,
-                    y_intercept,
-                    settings.y_intercept_label_offset,
-                    settings.show_point_labels,
-                )
+                point_key = (0.0, round(y_intercept, 9))
+                if point_key not in plotted_points:
+                    ax.scatter(0.0, y_intercept, zorder=7)
+                    plotted_points.add(point_key)
+                if settings.show_point_labels:
+                    annotate_axis_intercept(
+                        ax, intercept_labeler, settings, 0.0, y_intercept,
+                        "y", settings.y_intercept_label_offset,
+                    )
 
     for additional_x in settings.additional_x_values:
         if not np.isfinite(additional_x):
@@ -222,8 +219,7 @@ def create_exponential_graph(equation: str, settings: GraphSettings) -> None:
 
     ax.set_xlim(settings.x_min, settings.x_max)
     ax.set_ylim(settings.y_min, settings.y_max)
-    ax.set_xlabel(settings.x_label)
-    ax.set_ylabel(settings.y_label)
+    configure_cartesian_axes(ax, settings)
     if settings.show_title:
         ax.set_title(settings.title or "Exponential Function")
 
@@ -234,6 +230,9 @@ def create_exponential_graph(equation: str, settings: GraphSettings) -> None:
         plotted_y_values,
         graph_line.get_color(),
         settings,
+    )
+    place_graph_curve_label(
+        ax, x_values, plotted_y_values, graph_line.get_color(), settings, expression
     )
     if graph_legend_is_enabled(settings):
         ax.legend()

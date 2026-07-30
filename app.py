@@ -142,22 +142,8 @@ title = st.text_input(
     key=f"{graph_type.lower()}_title",
 )
 
-label_col1, label_col2 = st.columns(2)
-
-with label_col1:
-    x_label = st.text_input(
-        "x-axis label",
-        value="x",
-    )
-
-with label_col2:
-    y_label = st.text_input(
-        "y-axis label",
-        value="y",
-    )
-
 graph_label_style = st.selectbox(
-    "Graph label style",
+    "Legend label style",
     [
         "Full equation",
         "Function equation",
@@ -166,6 +152,58 @@ graph_label_style = st.selectbox(
     ],
 )
 
+graph_curve_label_style = st.selectbox(
+    "Graph curve label style",
+    [
+        "Function notation",
+        "Function name only",
+        "Full equation",
+        "No label",
+    ],
+    index=3,
+)
+
+st.subheader("Points and intercepts")
+
+point_control_col1, point_control_col2, point_control_col3 = st.columns(3)
+with point_control_col1:
+    show_x_intercepts = st.checkbox("Show x-intercepts", value=True)
+with point_control_col2:
+    show_y_intercepts = st.checkbox("Show y-intercepts", value=True)
+with point_control_col3:
+    show_intersection_points = (
+        st.checkbox("Show graph intersections", value=True)
+        if graph_type == "Mixed"
+        else False
+    )
+
+axis_intercept_label_style = st.selectbox(
+    "Axis-intercept label style",
+    [
+        "Full coordinates",
+        "Axis value only",
+        "Capital letter and coordinates",
+        "Capital letter only",
+        "No label",
+    ],
+)
+
+point_label_style = st.selectbox(
+    "Normal point-label style",
+    [
+        "Coordinates only",
+        "Capital letter and coordinates",
+        "Capital letter only",
+        "No label",
+    ],
+)
+
+point_label_col1, point_label_col2 = st.columns(2)
+with point_label_col1:
+    show_point_labels = st.checkbox("Show point labels", value=True)
+with point_label_col2:
+    annotation_background = st.checkbox("Show label backgrounds", value=True)
+
 st.subheader("Display options")
 
 option_col1, option_col2, option_col3 = st.columns(3)
@@ -173,11 +211,6 @@ option_col1, option_col2, option_col3 = st.columns(3)
 with option_col1:
     show_grid = st.checkbox(
         "Show grid",
-        value=True,
-    )
-
-    show_axes = st.checkbox(
-        "Show axes",
         value=True,
     )
 
@@ -197,64 +230,41 @@ with option_col2:
         value=True,
     )
 
-    show_intercepts = st.checkbox(
-        "Show intercepts",
-        value=True,
-    )
-
-    show_tick_marks = st.checkbox(
-        "Show tick marks",
-        value=True,
-    )
-
     show_legend = st.checkbox(
         "Show legend",
         value=True,
     )
 
-with option_col3:
-    show_tick_labels = st.checkbox(
-        "Show axis numbers",
-        value=True,
+st.subheader("Axes and Cartesian plane")
+
+axis_col1, axis_col2 = st.columns(2)
+with axis_col1:
+    show_axes = st.checkbox("Show axes", value=True)
+    axis_style = st.selectbox(
+        "Axis style",
+        ["Border axes", "Central Cartesian axes"],
     )
-
-    show_intersection_points = st.checkbox(
-        "Show intersection points",
-        value=True,
+    show_tick_marks = st.checkbox("Show tick marks", value=True)
+    show_tick_labels = st.checkbox("Show tick labels", value=True)
+    use_integer_unit_ticks = st.checkbox(
+        "Use 1-unit integer ticks", value=True
     )
+    show_origin_label = st.checkbox("Show origin label", value=True)
 
-st.subheader("Point labels")
-
-point_label_style = st.selectbox(
-    "Point label style",
-    [
-        "Coordinates only",
-        "Capital letter and coordinates",
-        "Capital letter only",
-        "No label",
-    ],
-)
-
-point_label_col1, point_label_col2 = st.columns(2)
-
-with point_label_col1:
-    show_point_labels = st.checkbox(
-        "Show point labels",
+with axis_col2:
+    show_axis_arrows = st.checkbox(
+        "Show arrows on Cartesian axes",
         value=True,
+        disabled=axis_style != "Central Cartesian axes",
     )
+    show_axis_labels = st.checkbox("Show axis labels", value=True)
+    x_axis_label = st.text_input("X-axis label", value="x")
+    y_axis_label = st.text_input("Y-axis label", value="y")
 
-with point_label_col2:
-    annotation_background = st.checkbox(
-        "Show label backgrounds",
-        value=True,
-    )
-
-st.subheader("Axes and origin")
-
-show_origin_label = st.checkbox(
-    "Show 0 at the origin",
-    value=True,
-)
+# Border axes retain Matplotlib's conventional outside labels; central axes
+# use the dedicated labels placed beside their positive arrowheads.
+x_label = x_axis_label
+y_label = y_axis_label
 
 show_graph_arrows = False
 if graph_type != "Circle":
@@ -734,17 +744,26 @@ if st.button("Generate Graph", type="primary"):
             show_title=show_title,
             show_legend=show_legend,
 
-            show_intercepts=show_intercepts,
+            show_x_intercepts=show_x_intercepts,
+            show_y_intercepts=show_y_intercepts,
             show_intersection_points=show_intersection_points,
             show_point_labels=show_point_labels,
             point_label_style=point_label_style,
             graph_label_style=graph_label_style,
+            graph_curve_label_style=graph_curve_label_style,
+            axis_intercept_label_style=axis_intercept_label_style,
             show_origin_label=show_origin_label,
             show_graph_arrows=show_graph_arrows,
+            axis_style=axis_style,
+            show_axis_arrows=show_axis_arrows,
+            show_axis_labels=show_axis_labels,
+            x_axis_label=x_axis_label,
+            y_axis_label=y_axis_label,
 
             show_border=show_border,
             show_tick_marks=show_tick_marks,
             show_tick_labels=show_tick_labels,
+            use_integer_unit_ticks=use_integer_unit_ticks,
 
             show_gradient=show_gradient,
             show_gradient_triangle=show_gradient_triangle,
