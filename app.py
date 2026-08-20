@@ -1,17 +1,8 @@
 import streamlit as st
 
-from generators.circle import create_circle_graph, parse_circle_equation
-from generators.cosine import create_cosine_graph
-from generators.cubic import create_cubic_graph
-from generators.exponential import create_exponential_graph
+from generators.api import generate_graph
+from generators.circle import parse_circle_equation
 from generators.graph_helpers import format_coordinate
-from generators.hyperbola import create_hyperbola_graph
-from generators.linear import create_linear_graph
-from generators.logarithmic import create_logarithmic_graph
-from generators.mixed import create_mixed_graph
-from generators.quadratic import create_quadratic_graph
-from generators.sine import create_sine_graph
-from generators.tangent import create_tangent_graph
 from models.graph_settings import GraphSettings
 
 st.set_page_config(
@@ -829,76 +820,18 @@ if st.button("Generate Graph", type="primary"):
         )
 
         try:
-            if graph_type == "Linear":
-                create_linear_graph(
-                    equation=equation,
-                    settings=settings,
-                )
+            artifact = generate_graph(
+                graph_type=graph_type,
+                equation=equation if graph_type != "Mixed" else None,
+                equations=(
+                    [equation_1, equation_2]
+                    if graph_type == "Mixed"
+                    else None
+                ),
+                settings=settings,
+            )
 
-            elif graph_type == "Quadratic":
-                create_quadratic_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Exponential":
-                create_exponential_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Hyperbola":
-                create_hyperbola_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Cubic":
-                create_cubic_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Logarithmic":
-                create_logarithmic_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Sine":
-                create_sine_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Cosine":
-                create_cosine_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Tangent":
-                create_tangent_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            elif graph_type == "Circle":
-                create_circle_graph(
-                    equation=equation,
-                    settings=settings,
-                )
-
-            else:
-                create_mixed_graph(
-                    equations=[
-                        equation_1,
-                        equation_2,
-                    ],
-                    settings=settings,
-                )
-
-            graph_path = f"generated_graphs/{output_name}"
+            graph_path = artifact.image_path
 
             st.success("Graph generated successfully.")
             if graph_type == "Circle" and settings.show_circle_properties:

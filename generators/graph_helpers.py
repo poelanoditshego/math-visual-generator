@@ -10,39 +10,14 @@ import sympy as sp
 from matplotlib.axes import Axes
 from matplotlib.ticker import FixedFormatter, FuncFormatter
 
+from constants import (
+    AXIS_INTERCEPT_LABEL_STYLES,
+    AXIS_STYLES,
+    GRAPH_CURVE_LABEL_STYLES,
+    GRAPH_LABEL_STYLES,
+    POINT_LABEL_STYLES,
+)
 from models.graph_settings import GraphSettings
-
-
-POINT_LABEL_STYLES = (
-    "Coordinates only",
-    "Capital letter and coordinates",
-    "Capital letter only",
-    "No label",
-)
-
-GRAPH_LABEL_STYLES = (
-    "Full equation",
-    "Function equation",
-    "Function name only",
-    "No graph label",
-)
-
-GRAPH_CURVE_LABEL_STYLES = (
-    "Function notation",
-    "Function name only",
-    "Full equation",
-    "No label",
-)
-
-AXIS_INTERCEPT_LABEL_STYLES = (
-    "Full coordinates",
-    "Axis value only",
-    "Capital letter and coordinates",
-    "Capital letter only",
-    "No label",
-)
-
-AXIS_STYLES = ("Border axes", "Central Cartesian axes")
 
 _SAFE_EXPRESSION = re.compile(r"[0-9A-Za-z_+\-*/(),.\s]+")
 
@@ -70,13 +45,16 @@ def parse_arithmetic_expression(
     functions = allowed_functions or {}
     constants = allowed_constants or {}
     identifiers = set(re.findall(r"[A-Za-z_]\w*", equation))
+    function_names = set(re.findall(r"([A-Za-z_]\w*)\s*\(", equation))
+    unsupported_functions = function_names - set(functions)
+    if unsupported_functions:
+        names = ", ".join(sorted(unsupported_functions))
+        raise ValueError(f"Unsupported function '{names}' in equation.")
+
     unsupported_identifiers = identifiers - {"x", *functions, *constants}
     if unsupported_identifiers:
         names = ", ".join(sorted(unsupported_identifiers))
-        raise ValueError(
-            f"{graph_name} expressions may only use the variable x; "
-            f"unsupported name: {names}."
-        )
+        raise ValueError(f"Unsupported variable '{names}'. Only x is allowed.")
     if (
         len(equation) > 500
         or _SAFE_EXPRESSION.fullmatch(equation) is None
@@ -109,6 +87,29 @@ def parse_arithmetic_expression(
         raise ValueError("Named functions are not supported by this graph generator.")
 
     return x, expression
+
+
+def validate_polynomial_degree(
+    expression: sp.Expr,
+    x: sp.Symbol,
+    graph_name: str,
+    degree: int,
+) -> sp.Poly:
+    """Require a finite real polynomial of one exact degree in x."""
+
+    try:
+        polynomial = sp.Poly(expression, x)
+    except sp.PolynomialError as error:
+        raise ValueError(f"The equation must be a {graph_name.lower()} function in x.") from error
+
+    if polynomial.degree() != degree:
+        raise ValueError(f"The equation must be a {graph_name.lower()} function in x.")
+
+    if any(finite_real_number(coefficient) is None for coefficient in polynomial.all_coeffs()):
+        raise ValueError(
+            f"The {graph_name.lower()} coefficients must be finite real numbers."
+        )
+    return polynomial
 
 
 def supported_exponential_powers(

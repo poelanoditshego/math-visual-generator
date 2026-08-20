@@ -15,7 +15,9 @@ from generators.graph_helpers import (
     graph_label,
     graph_legend_is_enabled,
     intercepts_enabled,
+    parse_arithmetic_expression,
     place_graph_curve_label,
+    validate_polynomial_degree,
 )
 from models.graph_settings import GraphSettings
 
@@ -23,17 +25,12 @@ from models.graph_settings import GraphSettings
 def create_linear_graph(equation: str, settings: GraphSettings) -> None:
     """Generate a linear graph using the supplied customisation settings."""
 
-    x = sp.Symbol("x")
-    try:
-        expression = sp.sympify(equation)
-        polynomial = sp.Poly(expression, x)
-    except (sp.SympifyError, sp.PolynomialError, TypeError) as error:
-        raise ValueError(
-            "The equation could not be understood. Use a format such as 2*x - 4."
-        ) from error
-
-    if polynomial.degree() != 1:
-        raise ValueError("This generator only accepts linear expressions.")
+    x, expression = parse_arithmetic_expression(
+        equation,
+        graph_name="Linear",
+        example="2*x - 4",
+    )
+    polynomial = validate_polynomial_degree(expression, x, "Linear", 1)
 
     gradient = polynomial.coeff_monomial(x)
     y_intercept = expression.subs(x, 0)

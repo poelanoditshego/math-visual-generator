@@ -16,24 +16,20 @@ from generators.graph_helpers import (
     graph_label,
     graph_legend_is_enabled,
     intercepts_enabled,
+    parse_arithmetic_expression,
     place_graph_curve_label,
+    validate_polynomial_degree,
 )
 from models.graph_settings import GraphSettings
 
 
 def create_quadratic_graph(equation: str, settings: GraphSettings) -> None:
-    x = sp.Symbol("x")
-    try:
-        expression = sp.sympify(equation)
-        polynomial = sp.Poly(expression, x)
-    except (sp.SympifyError, sp.PolynomialError, TypeError) as error:
-        raise ValueError(
-            "The equation could not be understood. "
-            "Use a format such as x**2 - 4*x + 3."
-        ) from error
-
-    if polynomial.degree() != 2:
-        raise ValueError("This generator only accepts quadratic expressions.")
+    x, expression = parse_arithmetic_expression(
+        equation,
+        graph_name="Quadratic",
+        example="x**2 - 4*x + 3",
+    )
+    polynomial = validate_polynomial_degree(expression, x, "Quadratic", 2)
 
     graph_function = sp.lambdify(x, expression, "numpy")
     x_values = np.linspace(settings.x_min, settings.x_max, 1000)

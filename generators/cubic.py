@@ -21,6 +21,7 @@ from generators.graph_helpers import (
     intercepts_enabled,
     parse_arithmetic_expression,
     place_graph_curve_label,
+    validate_polynomial_degree,
 )
 from models.graph_settings import GraphSettings
 
@@ -36,16 +37,7 @@ def parse_cubic_expression(
         example="x**3 - 4*x",
     )
     expression = sp.simplify(expression)
-    try:
-        polynomial = sp.Poly(expression, x)
-    except sp.PolynomialError as error:
-        raise ValueError("The expression must be a polynomial in x.") from error
-
-    if polynomial.degree() != 3 or polynomial.coeff_monomial(x**3) == 0:
-        raise ValueError(
-            "The expression must be a cubic polynomial with degree exactly 3 "
-            "and a non-zero x**3 coefficient."
-        )
+    polynomial = validate_polynomial_degree(expression, x, "Cubic", 3)
     return x, expression, polynomial
 
 
