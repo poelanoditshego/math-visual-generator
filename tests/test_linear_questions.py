@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import unittest
 
 import matplotlib
@@ -21,10 +22,13 @@ from questions.persistence import save_question_batch
 class LinearQuestionTests(unittest.TestCase):
     def setUp(self):
         self.paths: list[Path] = []
+        self.batch_directories: set[Path] = set()
 
     def tearDown(self):
         for path in self.paths:
             path.unlink(missing_ok=True)
+        for directory in self.batch_directories:
+            shutil.rmtree(directory, ignore_errors=True)
 
     def test_blueprint_defaults_and_validation(self):
         blueprint = QuestionBlueprint()
@@ -67,6 +71,24 @@ class LinearQuestionTests(unittest.TestCase):
         self.paths.extend(Path(question.graph_artifact.image_path) for question in first.questions)
         self.paths.extend(Path(question.graph_artifact.image_path) for question in second.questions)
 
+    def test_separate_batches_isolate_same_sequential_graph_names(self):
+        blueprint = QuestionBlueprint(number_of_questions=2)
+        first = generate_linear_question_batch(blueprint, seed=123)
+        second = generate_linear_question_batch(blueprint, seed=123)
+        self.batch_directories.update(
+            Path(question.graph_artifact.image_path).parent
+            for question in first.questions + second.questions
+        )
+
+        first_paths = [Path(question.graph_artifact.image_path) for question in first.questions]
+        second_paths = [Path(question.graph_artifact.image_path) for question in second.questions]
+        self.assertNotEqual(first.batch_id, second.batch_id)
+        self.assertEqual([path.name for path in first_paths], ["linear_0001.png", "linear_0002.png"])
+        self.assertEqual([path.name for path in second_paths], ["linear_0001.png", "linear_0002.png"])
+        self.assertNotEqual(first_paths[0].parent, second_paths[0].parent)
+        self.assertTrue(all(path.is_file() for path in first_paths + second_paths))
+        self.assertTrue(all(path.parent.name in {first.batch_id, second.batch_id} for path in first_paths + second_paths))
+
     def test_answer_hiding_settings(self):
         batch = generate_linear_question_batch(
             QuestionBlueprint(number_of_questions=6), seed=44
@@ -75,11 +97,38 @@ class LinearQuestionTests(unittest.TestCase):
         for question in batch.questions:
             display = question.graph_request.display
             self.assertFalse(display.show_equation)
+            self.assertFalse(display.show_title)
+            self.assertFalse(display.show_legend)
+            self.assertIn(
+                f"f(x) = {question.mathematical_data.equation.replace('*x', 'x')}",
+                question.question_text,
+            )
             if question.question_type == "x_intercept":
                 self.assertFalse(display.show_x_intercepts)
+                self.assertTrue(display.show_y_intercepts)  # Show for reference
             elif question.question_type == "y_intercept":
                 self.assertFalse(display.show_y_intercepts)
+                self.assertTrue(display.show_x_intercepts)  # Show for reference
             else:
+                self.assertFalse(display.show_gradient)
+                self.assertFalse(display.show_gradient_triangle)
+                self.assertTrue(display.show_x_intercepts)  # Show for reference
+                self.assertTrue(display.show_y_intercepts)  # Show for reference
+
+    def test_question_graph_does_not_rely_on_legend_for_equation_or_gradient(self):
+        batch = generate_linear_question_batch(
+            QuestionBlueprint(number_of_questions=3), seed=44
+        )
+        self.batch_directories.update(
+            Path(question.graph_artifact.image_path).parent
+            for question in batch.questions
+        )
+        for question in batch.questions:
+            display = question.graph_request.display
+            self.assertFalse(display.show_legend)
+            self.assertFalse(display.show_title)
+            self.assertFalse(display.show_equation)
+            if question.question_type == "gradient":
                 self.assertFalse(display.show_gradient)
                 self.assertFalse(display.show_gradient_triangle)
 

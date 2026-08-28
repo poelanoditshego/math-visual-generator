@@ -179,7 +179,7 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
     graph_types = [item[2] for item in parsed]
     x_values = np.linspace(settings.x_min, settings.x_max, 2000)
 
-    output_directory = Path("generated_graphs")
+    output_directory = Path(settings.output_directory)
     output_directory.mkdir(parents=True, exist_ok=True)
     output_path = output_directory / settings.output_name
     _, ax = plt.subplots(figsize=(settings.figure_width, settings.figure_height))

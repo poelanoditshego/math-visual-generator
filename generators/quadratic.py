@@ -38,7 +38,7 @@ def create_quadratic_graph(equation: str, settings: GraphSettings) -> None:
     y_intercept = expression.subs(x, 0)
     turning_x_values = sp.solve(sp.diff(expression, x), x)
 
-    output_folder = Path("generated_graphs")
+    output_folder = Path(settings.output_directory)
     output_folder.mkdir(exist_ok=True)
     output_path = output_folder / settings.output_name
 

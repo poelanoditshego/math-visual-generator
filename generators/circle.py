@@ -247,7 +247,7 @@ def create_circle_graph(equation: str, settings: GraphSettings) -> None:
     if not np.any(visible_curve):
         raise ValueError("The circle is not visible in the selected graph range.")
 
-    output_directory = Path("generated_graphs")
+    output_directory = Path(settings.output_directory)
     output_directory.mkdir(parents=True, exist_ok=True)
     output_path = output_directory / settings.output_name
     _, ax = plt.subplots(figsize=(settings.figure_width, settings.figure_height))

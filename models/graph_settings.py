@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
@@ -89,6 +90,7 @@ class GraphSettings:
     figure_width: float = 10
     figure_height: float = 7
     output_name: str = "graph.png"
+    output_directory: Path = field(default_factory=lambda: Path("generated_graphs"))
     image_dpi: int = 300
 
     # Annotation settings

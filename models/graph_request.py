@@ -42,6 +42,8 @@ class GraphDisplaySettings:
     show_grid: bool = True
     show_axes: bool = True
     show_equation: bool = True
+    show_title: bool = True
+    show_legend: bool = True
     show_border: bool = True
     show_tick_marks: bool = True
     show_tick_labels: bool = True

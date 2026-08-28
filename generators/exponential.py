@@ -109,7 +109,7 @@ def create_exponential_graph(equation: str, settings: GraphSettings) -> None:
     if not np.any(visible):
         raise ValueError("The function has no visible real values in the graph range.")
 
-    output_directory = Path("generated_graphs")
+    output_directory = Path(settings.output_directory)
     output_directory.mkdir(parents=True, exist_ok=True)
     output_path = output_directory / settings.output_name
 

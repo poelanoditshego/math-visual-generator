@@ -3,3 +3,4 @@ numpy
 sympy
 pillow
 streamlit
+openai

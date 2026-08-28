@@ -32,7 +32,11 @@ _SINGLE_EQUATION_GENERATORS: dict[str, Callable[[str, GraphSettings], None]] = {
 }
 
 
-def graph_request_to_settings(request: GraphRequest) -> GraphSettings:
+def graph_request_to_settings(
+    request: GraphRequest,
+    *,
+    output_directory: Path | str | None = None,
+) -> GraphSettings:
     """Convert the public request controls into internal graph settings."""
 
     display = request.display
@@ -45,6 +49,8 @@ def graph_request_to_settings(request: GraphRequest) -> GraphSettings:
         show_grid=display.show_grid,
         show_axes=display.show_axes,
         show_equation=display.show_equation,
+        show_title=display.show_title,
+        show_legend=display.show_legend,
         show_border=display.show_border,
         show_tick_marks=display.show_tick_marks,
         show_tick_labels=display.show_tick_labels,
@@ -81,6 +87,7 @@ def graph_request_to_settings(request: GraphRequest) -> GraphSettings:
         show_diameter=display.show_diameter,
         show_diameter_label=display.show_diameter_label,
         output_name=request.output_name,
+        output_directory=Path(output_directory) if output_directory else Path("generated_graphs"),
     )
 
 
@@ -113,7 +120,7 @@ def generate_graph(
             settings=settings,
         )
 
-    image_path = Path("generated_graphs") / settings.output_name
+    image_path = Path(settings.output_directory) / settings.output_name
     if not image_path.is_file():
         raise ValueError("Graph generation completed but no output image was created.")
 
@@ -123,11 +130,15 @@ def generate_graph(
     )
 
 
-def generate_graph_from_request(request: GraphRequest) -> GraphArtifact:
+def generate_graph_from_request(
+    request: GraphRequest,
+    *,
+    output_directory: Path | str | None = None,
+) -> GraphArtifact:
     """Validate a structured request, convert it, and generate its graph."""
 
     request.validate()
-    settings = graph_request_to_settings(request)
+    settings = graph_request_to_settings(request, output_directory=output_directory)
     return generate_graph(
         graph_type=request.graph_type,
         equation=request.equation,

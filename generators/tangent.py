@@ -142,7 +142,7 @@ def create_tangent_graph(equation: str, settings: GraphSettings) -> None:
                 f"x = {format_coordinate(additional_x)}{suffix}."
             )
 
-    output_directory = Path("generated_graphs")
+    output_directory = Path(settings.output_directory)
     output_directory.mkdir(parents=True, exist_ok=True)
     output_path = output_directory / settings.output_name
     _, ax = plt.subplots(figsize=(settings.figure_width, settings.figure_height))

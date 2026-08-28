@@ -39,7 +39,7 @@ def create_linear_graph(equation: str, settings: GraphSettings) -> None:
     y_values = np.asarray(graph_function(x_values), dtype=float)
     x_intercepts = sp.solve(expression, x)
 
-    output_folder = Path("generated_graphs")
+    output_folder = Path(settings.output_directory)
     output_folder.mkdir(exist_ok=True)
     output_path = output_folder / settings.output_name
 
