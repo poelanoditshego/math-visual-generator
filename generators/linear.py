@@ -132,7 +132,7 @@ def create_linear_graph(equation: str, settings: GraphSettings) -> None:
                     xytext=(8, 0),
                 )
 
-    for additional_x in settings.additional_x_values:
+    for index, additional_x in enumerate(settings.additional_x_values):
         additional_y = float(expression.subs(x, additional_x))
         point_is_visible = (
             settings.x_min <= additional_x <= settings.x_max
@@ -141,14 +141,22 @@ def create_linear_graph(equation: str, settings: GraphSettings) -> None:
         if point_is_visible:
             ax.scatter(additional_x, additional_y, zorder=6)
             if settings.show_additional_point_labels:
-                annotate_point(
-                    ax,
-                    labeler,
-                    settings,
-                    additional_x,
-                    additional_y,
-                    settings.additional_point_label_offset,
-                )
+                if index < len(settings.additional_point_labels):
+                    ax.annotate(
+                        settings.additional_point_labels[index],
+                        (additional_x, additional_y),
+                        textcoords="offset points",
+                        xytext=settings.additional_point_label_offset,
+                    )
+                else:
+                    annotate_point(
+                        ax,
+                        labeler,
+                        settings,
+                        additional_x,
+                        additional_y,
+                        settings.additional_point_label_offset,
+                    )
 
     ax.set_xlim(settings.x_min, settings.x_max)
     ax.set_ylim(settings.y_min, settings.y_max)

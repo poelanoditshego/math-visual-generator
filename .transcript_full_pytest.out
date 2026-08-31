@@ -1,0 +1,39 @@
+s................................................................... [ 47%]
+..................................................... [ 84%]
+.......................                            [100%]
+============================== warnings summary ===============================
+tests/test_ai_question_writer.py: 4 warnings
+tests/test_graph_api.py: 1 warning
+tests/test_graph_request.py: 1 warning
+tests/test_linear_questions.py: 19 warnings
+tests/test_parsing.py: 1 warning
+  C:\Users\Admin\Desktop\Dlala Group\math-visual-generator\generators\linear.py:183: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_graph_api.py::GraphApiTests::test_individual_graphs_return_non_empty_artifacts
+tests/test_parsing.py::EquationParsingTests::test_quadratic_accepts_y_form
+  C:\Users\Admin\Desktop\Dlala Group\math-visual-generator\generators\quadratic.py:161: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_graph_api.py::GraphApiTests::test_individual_graphs_return_non_empty_artifacts
+  C:\Users\Admin\Desktop\Dlala Group\math-visual-generator\generators\hyperbola.py:332: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_graph_api.py::GraphApiTests::test_individual_graphs_return_non_empty_artifacts
+  C:\Users\Admin\Desktop\Dlala Group\math-visual-generator\generators\trig_helpers.py:453: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_graph_api.py::GraphApiTests::test_individual_graphs_return_non_empty_artifacts
+  C:\Users\Admin\Desktop\Dlala Group\math-visual-generator\generators\circle.py:442: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+    plt.show()
+
+tests/test_mixed.py::MixedGraphTests::test_required_pairs_and_existing_polynomial_pairs_render
+  C:\Users\Admin\Desktop\Dlala Group\math-visual-generator\tests\test_mixed.py:216: UserWarning: x = 0 was skipped because it is the hyperbola's vertical asymptote.
+    create_mixed_graph(list(pair), settings)
+
+tests/test_mixed.py::MixedGraphTests::test_required_pairs_and_existing_polynomial_pairs_render
+  C:\Users\Admin\Desktop\Dlala Group\math-visual-generator\tests\test_mixed.py:216: UserWarning: x = 1 was skipped because it is the hyperbola's vertical asymptote.
+    create_mixed_graph(list(pair), settings)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+143 passed, 1 skipped, 33 warnings, 117 subtests passed in 51.52s

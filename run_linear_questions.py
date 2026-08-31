@@ -15,6 +15,9 @@ def main():
         grade=9,
         difficulty="Medium",
         number_of_questions=3,
+        question_types=[
+            "determine_equation",
+        ],
     )
 
     batch = generate_linear_question_batch(

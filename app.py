@@ -1,15 +1,30 @@
 import streamlit as st
 
+from generate_questions import show_question_generator
 from generators.api import generate_graph
 from generators.circle import parse_circle_equation
 from generators.graph_helpers import format_coordinate
 from models.graph_settings import GraphSettings
+from review_questions import show_question_reviewer
 
 st.set_page_config(
     page_title="Math Visual Generator",
     page_icon="📈",
     layout="wide",
 )
+
+st.sidebar.title("Math Visual Generator")
+page = st.sidebar.radio(
+    "Navigation",
+    ["Graph Generator", "Question Generator", "Review Questions"],
+)
+
+if page == "Question Generator":
+    show_question_generator()
+    st.stop()
+if page == "Review Questions":
+    show_question_reviewer()
+    st.stop()
 
 st.title("Math Visual Generator")
 st.write(

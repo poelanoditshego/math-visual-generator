@@ -200,6 +200,50 @@ class TestLinearQuestionInformationSufficiency:
         assert display.show_title is False
         assert display.show_legend is False
 
+    def test_determine_equation_hides_equation(self):
+        settings = build_linear_display_settings(
+            "determine_equation"
+        )
+
+        assert settings.show_equation is False
+        assert settings.show_title is False
+        assert settings.show_legend is False
+
+
+    def test_determine_equation_shows_both_intercepts(self):
+        settings = build_linear_display_settings(
+            "determine_equation"
+        )
+
+        assert settings.show_x_intercepts is True
+        assert settings.show_y_intercepts is True
+
+
+    def test_determine_equation_hides_gradient(self):
+        settings = build_linear_display_settings(
+            "determine_equation"
+        )
+
+        assert settings.show_gradient is False
+        assert settings.show_gradient_triangle is False
+
+    def test_new_question_type_policies_are_explicit(self):
+        for question_type in ("find_f_of_x", "find_x_given_y"):
+            settings = build_linear_display_settings(question_type)
+            assert settings.show_equation is False
+            assert settings.show_gradient is False
+            assert settings.show_gradient_triangle is False
+
+        coordinate = build_linear_display_settings("read_coordinate")
+        assert coordinate.show_grid is True
+        assert coordinate.show_axes is True
+        assert coordinate.show_tick_labels is True
+        assert coordinate.show_additional_point_labels is True
+
+        direction = build_linear_display_settings("increasing_or_decreasing")
+        assert direction.show_equation is False
+        assert direction.show_gradient is False
+        assert direction.show_gradient_triangle is False
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

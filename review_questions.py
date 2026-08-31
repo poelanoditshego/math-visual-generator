@@ -202,15 +202,8 @@ def display_navigation(current_index: int, total_questions: int) -> None:
             st.rerun()
 
 
-def main():
-    """Main Streamlit app."""
-    st.set_page_config(
-        page_title="Question Batch Reviewer",
-        page_icon="📋",
-        layout="wide",
-        initial_sidebar_state="expanded",
-    )
-    
+def show_question_reviewer() -> None:
+    """Render the batch-review page within the unified application."""
     st.title("📋 Question Batch Reviewer")
     
     init_session_state()
@@ -231,11 +224,19 @@ def main():
         
         batch_names = [f.name for f in batch_files]
         
+        # Use the latest generated batch if available
+        latest_batch = st.session_state.get("latest_generated_batch")
+
+        default_index = 0
+
+        if latest_batch in batch_names:
+            default_index = batch_names.index(latest_batch)
+
         # Batch selector
         selected_batch = st.selectbox(
             "Select Question Batch",
             options=batch_names,
-            index=0,
+            index=default_index,
         )
         
         if st.button("🔄 Refresh Batches", key="refresh_batches_button"):
@@ -308,4 +309,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    st.set_page_config(
+        page_title="Question Batch Reviewer",
+        page_icon="📋",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+    show_question_reviewer()

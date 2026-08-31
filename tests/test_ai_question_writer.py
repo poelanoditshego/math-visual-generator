@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from models.question_models import QuestionBlueprint
 from questions.linear import generate_linear_question_batch
-from ai.question_writer import write_linear_question
+from ai.question_writer import _validate_response, write_linear_question
 
 
 def _ai_result(question_text="AI question", memo="AI memo (1, 0)"):
@@ -109,3 +109,36 @@ def test_invalid_structured_response_is_retried_once():
     assert result.question_text == json.loads(valid.output_text)["question_text"]
     assert result.memo == json.loads(valid.output_text)["memo"]
     assert request.call_count == 2
+
+
+def test_ai_validation_accepts_new_type_wording_without_answer_disclosure():
+    cases = [
+        ("find_f_of_x", "2*x - 3", "5", ["equation", "input_x"], ["f(x) value"],
+         "The graph of f(x) = 2x - 3 is shown. Determine f(4).", "Substitute x = 4. Therefore, f(4) = 5."),
+        ("find_x_given_y", "3*x - 2", "3", ["equation", "target_y"], ["x value"],
+         "The graph of f(x) = 3x - 2 is shown. Determine the value of x if f(x) = 7.", "Solve 7 = 3x - 2. Therefore, x = 3."),
+        ("read_coordinate", "2*x + 1", "(2; 5)", ["point label", "graph"], ["coordinates"],
+         "Write down the coordinates of point A.", "Read point A from the axes. Therefore, the coordinates are (2; 5)."),
+        ("increasing_or_decreasing", "-2*x + 1", "Decreasing", ["graph"], ["gradient", "equation"],
+         "State whether the function shown below is increasing or decreasing.", "The line falls from left to right. Therefore, it is Decreasing."),
+    ]
+    for question_type, equation, answer, visible, hidden, question, memo in cases:
+        result = _validate_response(
+            {"question_text": question, "memo": memo}, question_type=question_type,
+            equation=equation, expected_answer=answer,
+            visible_information=visible, hidden_information=hidden,
+        )
+        assert result.question_text == question
+
+
+def test_ai_validation_rejects_disclosed_direction_answer():
+    import pytest
+
+    with pytest.raises(ValueError, match="reveals the verified answer"):
+        _validate_response(
+            {"question_text": "The graph is increasing. State whether it is increasing or decreasing.",
+             "memo": "It rises. Therefore, it is Increasing."},
+            question_type="increasing_or_decreasing", equation="2*x + 1",
+            expected_answer="Increasing", visible_information=["graph"],
+            hidden_information=["gradient", "equation"],
+        )

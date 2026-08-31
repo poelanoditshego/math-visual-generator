@@ -1,0 +1,288 @@
+{
+  "blueprint": {
+    "subject": "Mathematics",
+    "grade": 9,
+    "topic": "Functions",
+    "subtopic": "Linear Functions",
+    "difficulty": "Easy",
+    "marks_per_question": 4,
+    "number_of_questions": 3,
+    "question_types": [
+      "read_coordinate"
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "linear_0001",
+      "question_type": "read_coordinate",
+      "subject": "Mathematics",
+      "grade": 9,
+      "topic": "Functions",
+      "subtopic": "Linear Functions",
+      "difficulty": "Easy",
+      "marks": 4,
+      "question_text": "Write down the coordinates of point A.",
+      "expected_answer": "(1; 2)",
+      "memo": "Read the coordinates of point A from the graph.\n\nFrom the x-axis: x = 1\nFrom the y-axis: y = 2\n\nTherefore, the coordinates of point A are (1; 2).",
+      "mathematical_data": {
+        "equation": "2*x",
+        "gradient": 2,
+        "y_intercept": 0,
+        "x_intercept": 0,
+        "function_name": "f",
+        "input_x": null,
+        "target_y": null,
+        "selected_point": [
+          1,
+          2
+        ]
+      },
+      "graph_request": {
+        "graph_type": "Linear",
+        "equation": "2*x",
+        "equations": null,
+        "graph_range": {
+          "x_min": -3,
+          "x_max": 3,
+          "y_min": -9,
+          "y_max": 9
+        },
+        "display": {
+          "show_grid": false,
+          "show_axes": true,
+          "show_equation": false,
+          "show_title": false,
+          "show_legend": false,
+          "show_border": false,
+          "show_tick_marks": true,
+          "show_tick_labels": true,
+          "use_integer_unit_ticks": true,
+          "show_x_intercepts": false,
+          "show_y_intercepts": false,
+          "show_intersection_points": true,
+          "show_point_labels": true,
+          "point_label_style": "Coordinates only",
+          "axis_intercept_label_style": "Full coordinates",
+          "graph_curve_label_style": "No label",
+          "show_origin_label": true,
+          "show_graph_arrows": true,
+          "show_axis_arrows": true,
+          "show_axis_labels": true,
+          "additional_x_values": [
+            1
+          ],
+          "additional_point_labels": [
+            "A"
+          ],
+          "show_additional_point_labels": true,
+          "show_gradient": false,
+          "show_gradient_triangle": false,
+          "show_turning_point": true,
+          "show_axis_of_symmetry": true,
+          "show_vertical_asymptote": true,
+          "show_horizontal_asymptote": true,
+          "show_asymptote_labels": true,
+          "show_hyperbola_centre": true,
+          "show_stationary_points": true,
+          "show_inflection_point": true,
+          "trig_angle_mode": "Degrees",
+          "show_midline": true,
+          "show_maximum_points": true,
+          "show_minimum_points": true,
+          "show_circle_centre": true,
+          "show_radius": false,
+          "show_radius_label": true,
+          "show_diameter": false,
+          "show_diameter_label": true
+        },
+        "output_name": "linear_0001.png"
+      },
+      "graph_artifact": {
+        "image_path": "generated_graphs\\linear_55c190ec34494ce7aa716a5d8cd914e7\\linear_0001.png",
+        "graph_type": "Linear"
+      }
+    },
+    {
+      "question_id": "linear_0002",
+      "question_type": "read_coordinate",
+      "subject": "Mathematics",
+      "grade": 9,
+      "topic": "Functions",
+      "subtopic": "Linear Functions",
+      "difficulty": "Easy",
+      "marks": 4,
+      "question_text": "Write down the coordinates of point A.",
+      "expected_answer": "(-2; -6)",
+      "memo": "Read the coordinates of point A from the graph.\n\nFrom the x-axis: x = -2\nFrom the y-axis: y = -6\n\nTherefore, the coordinates of point A are (-2; -6).",
+      "mathematical_data": {
+        "equation": "-2*x - 10",
+        "gradient": -2,
+        "y_intercept": -10,
+        "x_intercept": -5,
+        "function_name": "f",
+        "input_x": null,
+        "target_y": null,
+        "selected_point": [
+          -2,
+          -6
+        ]
+      },
+      "graph_request": {
+        "graph_type": "Linear",
+        "equation": "-2*x - 10",
+        "equations": null,
+        "graph_range": {
+          "x_min": -8,
+          "x_max": 3,
+          "y_min": -19,
+          "y_max": 9
+        },
+        "display": {
+          "show_grid": false,
+          "show_axes": true,
+          "show_equation": false,
+          "show_title": false,
+          "show_legend": false,
+          "show_border": false,
+          "show_tick_marks": true,
+          "show_tick_labels": true,
+          "use_integer_unit_ticks": true,
+          "show_x_intercepts": false,
+          "show_y_intercepts": false,
+          "show_intersection_points": true,
+          "show_point_labels": true,
+          "point_label_style": "Coordinates only",
+          "axis_intercept_label_style": "Full coordinates",
+          "graph_curve_label_style": "No label",
+          "show_origin_label": true,
+          "show_graph_arrows": true,
+          "show_axis_arrows": true,
+          "show_axis_labels": true,
+          "additional_x_values": [
+            -2
+          ],
+          "additional_point_labels": [
+            "A"
+          ],
+          "show_additional_point_labels": true,
+          "show_gradient": false,
+          "show_gradient_triangle": false,
+          "show_turning_point": true,
+          "show_axis_of_symmetry": true,
+          "show_vertical_asymptote": true,
+          "show_horizontal_asymptote": true,
+          "show_asymptote_labels": true,
+          "show_hyperbola_centre": true,
+          "show_stationary_points": true,
+          "show_inflection_point": true,
+          "trig_angle_mode": "Degrees",
+          "show_midline": true,
+          "show_maximum_points": true,
+          "show_minimum_points": true,
+          "show_circle_centre": true,
+          "show_radius": false,
+          "show_radius_label": true,
+          "show_diameter": false,
+          "show_diameter_label": true
+        },
+        "output_name": "linear_0002.png"
+      },
+      "graph_artifact": {
+        "image_path": "generated_graphs\\linear_55c190ec34494ce7aa716a5d8cd914e7\\linear_0002.png",
+        "graph_type": "Linear"
+      }
+    },
+    {
+      "question_id": "linear_0003",
+      "question_type": "read_coordinate",
+      "subject": "Mathematics",
+      "grade": 9,
+      "topic": "Functions",
+      "subtopic": "Linear Functions",
+      "difficulty": "Easy",
+      "marks": 4,
+      "question_text": "Write down the coordinates of point A.",
+      "expected_answer": "(1; 3)",
+      "memo": "Read the coordinates of point A from the graph.\n\nFrom the x-axis: x = 1\nFrom the y-axis: y = 3\n\nTherefore, the coordinates of point A are (1; 3).",
+      "mathematical_data": {
+        "equation": "-x + 4",
+        "gradient": -1,
+        "y_intercept": 4,
+        "x_intercept": 4,
+        "function_name": "f",
+        "input_x": null,
+        "target_y": null,
+        "selected_point": [
+          1,
+          3
+        ]
+      },
+      "graph_request": {
+        "graph_type": "Linear",
+        "equation": "-x + 4",
+        "equations": null,
+        "graph_range": {
+          "x_min": -3,
+          "x_max": 7,
+          "y_min": -6,
+          "y_max": 10
+        },
+        "display": {
+          "show_grid": false,
+          "show_axes": true,
+          "show_equation": false,
+          "show_title": false,
+          "show_legend": false,
+          "show_border": false,
+          "show_tick_marks": true,
+          "show_tick_labels": true,
+          "use_integer_unit_ticks": true,
+          "show_x_intercepts": false,
+          "show_y_intercepts": false,
+          "show_intersection_points": true,
+          "show_point_labels": true,
+          "point_label_style": "Coordinates only",
+          "axis_intercept_label_style": "Full coordinates",
+          "graph_curve_label_style": "No label",
+          "show_origin_label": true,
+          "show_graph_arrows": true,
+          "show_axis_arrows": true,
+          "show_axis_labels": true,
+          "additional_x_values": [
+            1
+          ],
+          "additional_point_labels": [
+            "A"
+          ],
+          "show_additional_point_labels": true,
+          "show_gradient": false,
+          "show_gradient_triangle": false,
+          "show_turning_point": true,
+          "show_axis_of_symmetry": true,
+          "show_vertical_asymptote": true,
+          "show_horizontal_asymptote": true,
+          "show_asymptote_labels": true,
+          "show_hyperbola_centre": true,
+          "show_stationary_points": true,
+          "show_inflection_point": true,
+          "trig_angle_mode": "Degrees",
+          "show_midline": true,
+          "show_maximum_points": true,
+          "show_minimum_points": true,
+          "show_circle_centre": true,
+          "show_radius": false,
+          "show_radius_label": true,
+          "show_diameter": false,
+          "show_diameter_label": true
+        },
+        "output_name": "linear_0003.png"
+      },
+      "graph_artifact": {
+        "image_path": "generated_graphs\\linear_55c190ec34494ce7aa716a5d8cd914e7\\linear_0003.png",
+        "graph_type": "Linear"
+      }
+    }
+  ],
+  "batch_id": "linear_55c190ec34494ce7aa716a5d8cd914e7",
+  "created_at": "2026-08-30T16:45:25.565331+00:00"
+}

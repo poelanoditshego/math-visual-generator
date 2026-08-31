@@ -5,7 +5,16 @@ from models.graph_artifact import GraphArtifact
 from models.graph_request import GraphRequest
 
 SUPPORTED_DIFFICULTIES = ("Easy", "Medium", "Hard")
-SUPPORTED_LINEAR_QUESTION_TYPES = ("x_intercept", "y_intercept", "gradient")
+SUPPORTED_LINEAR_QUESTION_TYPES = (
+    "x_intercept",
+    "y_intercept",
+    "gradient",
+    "determine_equation",
+    "find_f_of_x",
+    "find_x_given_y",
+    "read_coordinate",
+    "increasing_or_decreasing",
+)
 
 
 @dataclass
@@ -53,6 +62,9 @@ class LinearQuestionData:
     y_intercept: int | float
     x_intercept: int | float | None
     function_name: str = "f"
+    input_x: int | float | None = None  # for find_f_of_x
+    target_y: int | float | None = None  # for find_x_given_y
+    selected_point: tuple[int | float, int | float] | None = None  # for read_coordinate
 
 
 @dataclass

@@ -60,6 +60,12 @@ class GraphDisplaySettings:
     show_axis_arrows: bool = True
     show_axis_labels: bool = True
 
+    # Optional points placed on the graph without exposing their coordinates.
+    # ``additional_point_labels`` aligns with ``additional_x_values``.
+    additional_x_values: list[float] = field(default_factory=list)
+    additional_point_labels: list[str] = field(default_factory=list)
+    show_additional_point_labels: bool = True
+
     show_gradient: bool = True
     show_gradient_triangle: bool = False
     show_turning_point: bool = True
@@ -94,6 +100,13 @@ class GraphDisplaySettings:
             )
         if self.trig_angle_mode not in {"Degrees", "Radians"}:
             raise ValueError(f"Unsupported trigonometric angle mode: {self.trig_angle_mode}")
+        if not all(isinstance(value, Real) and not isinstance(value, bool) for value in self.additional_x_values):
+            raise ValueError("Additional x-values must be numbers.")
+        if self.additional_point_labels and (
+            len(self.additional_point_labels) != len(self.additional_x_values)
+            or not all(isinstance(label, str) and label.strip() for label in self.additional_point_labels)
+        ):
+            raise ValueError("Additional point labels must match the additional x-values.")
 
 
 _OUTPUT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9 _-]+\.png$")
