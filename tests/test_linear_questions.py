@@ -158,7 +158,7 @@ class LinearQuestionTests(unittest.TestCase):
 
     def test_json_persistence_preserves_question_and_graph_request(self):
         batch = generate_linear_question_batch(
-            QuestionBlueprint(number_of_questions=1), seed=5
+            QuestionBlueprint(number_of_questions=1, question_types=["gradient"]), seed=5
         )
         graph_path = Path(batch.questions[0].graph_artifact.image_path)
         self.paths.append(graph_path)

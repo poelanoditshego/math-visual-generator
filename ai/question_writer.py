@@ -46,6 +46,12 @@ _QUESTION_TYPE_PHRASES = {
     "determine_equation": (
         "determine the equation", "find the equation", "write down the equation", "equation of the",
     ),
+    "equation_from_two_points": (
+        "determine the equation", "find the equation", "equation of the", "passing through",
+    ),
+    "equation_from_gradient_and_point": (
+        "determine the equation", "find the equation", "equation of the", "passes through",
+    ),
     "find_f_of_x": ("determine f(", "calculate f(", "find f(", "value of f("),
     "find_x_given_y": ("determine the value of x", "find x", "determine x"),
     "read_coordinate": ("coordinates of point", "coordinate of point", "coordinates of"),
@@ -68,6 +74,9 @@ def _validate_response(
     expected_answer: str,
     visible_information: list[str],
     hidden_information: list[str],
+    gradient: int | float | None = None,
+    point_a: tuple[int | float, int | float] | None = None,
+    point_b: tuple[int | float, int | float] | None = None,
 ) -> AIQuestionText:
     if not isinstance(payload, dict) or set(payload) != {"question_text", "memo"}:
         raise ValueError("AI response must contain exactly question_text and memo")
@@ -91,6 +100,35 @@ def _validate_response(
         raise ValueError("AI question_text reveals hidden equation")
     if "gradient" in hidden_information and re.search(r"\bgradient\s*[:=]", question_text, re.I):
         raise ValueError("AI question_text reveals hidden gradient information")
+    if "y-intercept" in hidden_information and re.search(
+        r"\b(?:y[- ]?intercept|c)\s*(?:is|[:=])", question_text, re.I
+    ):
+        raise ValueError("AI question_text reveals hidden y-intercept information")
+    if question_type in {"equation_from_two_points", "equation_from_gradient_and_point"}:
+        normalized_question = normalize_answer(question_text)
+        required_points = (("a", point_a),)
+        if question_type == "equation_from_two_points":
+            required_points += (("b", point_b),)
+        for label, point in required_points:
+            if point is None:
+                raise ValueError("Point question data is incomplete")
+            point_text = normalize_answer(f"{label}({point[0]};{point[1]})")
+            if point_text not in normalized_question:
+                raise ValueError("AI question_text altered or omitted a supplied point")
+    if question_type == "equation_from_gradient_and_point":
+        if gradient is None:
+            raise ValueError("Gradient-and-point question data is incomplete")
+        normalized_question = normalize_answer(question_text)
+        gradient_text = str(gradient)
+        visible_gradient_forms = (
+            f"gradientof{gradient_text}",
+            f"gradientis{gradient_text}",
+            f"gradient:{gradient_text}",
+            f"gradient={gradient_text}",
+            f"m={gradient_text}",
+        )
+        if not any(form in normalized_question for form in visible_gradient_forms):
+            raise ValueError("AI question_text altered or omitted the supplied gradient")
 
     phrases = _QUESTION_TYPE_PHRASES.get(question_type)
     if not phrases:
@@ -106,6 +144,8 @@ def _prompts(
     y_intercept: int | float, visible_information: list[str], hidden_information: list[str],
     input_x: int | float | None = None, target_y: int | float | None = None,
     second_equation: str | None = None,
+    point_a: tuple[int | float, int | float] | None = None,
+    point_b: tuple[int | float, int | float] | None = None,
 ) -> tuple[str, str]:
     system_prompt = (
         "You write South African school Mathematics questions. The mathematics supplied "
@@ -129,6 +169,20 @@ def _prompts(
         payload["target_y"] = target_y
     if second_equation is not None:
         payload["second_equation"] = second_equation
+    if point_a is not None:
+        payload["point_a"] = point_a
+    if point_b is not None:
+        payload["point_b"] = point_b
+    if question_type == "equation_from_two_points":
+        payload["output_requirements"]["question_text"] = (
+            "Ask for the line equation and reproduce points A and B exactly. "
+            "Do not include the equation, gradient, or y-intercept."
+        )
+    elif question_type == "equation_from_gradient_and_point":
+        payload["output_requirements"]["question_text"] = (
+            "Ask for the line equation and reproduce the gradient and point A exactly. "
+            "Do not include the equation or y-intercept."
+        )
     return system_prompt, json.dumps(payload, indent=2)
 
 
@@ -138,6 +192,8 @@ def write_linear_question(
     y_intercept: int | float, visible_information: list[str], hidden_information: list[str],
     input_x: int | float | None = None, target_y: int | float | None = None,
     second_equation: str | None = None,
+    point_a: tuple[int | float, int | float] | None = None,
+    point_b: tuple[int | float, int | float] | None = None,
 ) -> AIQuestionText:
     """Generate and validate AI wording, retrying one invalid response."""
     system_prompt, user_prompt = _prompts(
@@ -146,6 +202,7 @@ def write_linear_question(
         y_intercept=y_intercept, visible_information=visible_information,
         hidden_information=hidden_information, input_x=input_x, target_y=target_y,
         second_equation=second_equation,
+        point_a=point_a, point_b=point_b,
     )
     last_error: Exception | None = None
     for _ in range(2):
@@ -155,6 +212,8 @@ def write_linear_question(
                 json.loads(response.output_text), question_type=question_type,
                 equation=equation, expected_answer=expected_answer,
                 visible_information=visible_information, hidden_information=hidden_information,
+                gradient=gradient,
+                point_a=point_a, point_b=point_b,
             )
         except Exception as error:
             last_error = error

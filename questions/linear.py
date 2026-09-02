@@ -130,6 +130,78 @@ def _generate_intersection_data(
     )
 
 
+def _generate_two_point_data(
+    rng: random.Random,
+    difficulty: str,
+) -> LinearQuestionData:
+    """Construct an integer line and two readable, non-axis points on it."""
+    if difficulty == "Easy":
+        gradient_limit, intercept_limit, x_limit, y_limit = 2, 4, 4, 8
+    elif difficulty == "Medium":
+        gradient_limit, intercept_limit, x_limit, y_limit = 4, 6, 5, 12
+    else:
+        gradient_limit, intercept_limit, x_limit, y_limit = 5, 8, 6, 16
+
+    candidates: list[tuple[int, int, int, int]] = []
+    gradients = [value for value in range(-gradient_limit, gradient_limit + 1) if value]
+    for gradient in gradients:
+        for y_intercept in range(-intercept_limit, intercept_limit + 1):
+            valid_x_values = [
+                x_value
+                for x_value in range(-x_limit, x_limit + 1)
+                if x_value != 0
+                and gradient * x_value + y_intercept != 0
+                and abs(gradient * x_value + y_intercept) <= y_limit
+            ]
+            for first_index, x1 in enumerate(valid_x_values):
+                for x2 in valid_x_values[first_index + 1:]:
+                    if abs(x2 - x1) >= 2:
+                        candidates.append((gradient, y_intercept, x1, x2))
+
+    gradient, y_intercept, x1, x2 = rng.choice(candidates)
+    point_a = (x1, gradient * x1 + y_intercept)
+    point_b = (x2, gradient * x2 + y_intercept)
+    return LinearQuestionData(
+        equation=_format_linear_equation(gradient, y_intercept),
+        gradient=gradient,
+        y_intercept=y_intercept,
+        x_intercept=-y_intercept / gradient,
+        point_a=point_a,
+        point_b=point_b,
+    )
+
+
+def _generate_gradient_point_data(
+    rng: random.Random,
+    difficulty: str,
+) -> LinearQuestionData:
+    """Construct an integer line and one readable non-axis point on it."""
+    if difficulty == "Easy":
+        gradient_limit, intercept_limit, x_limit, y_limit = 2, 4, 4, 8
+    elif difficulty == "Medium":
+        gradient_limit, intercept_limit, x_limit, y_limit = 4, 6, 5, 12
+    else:
+        gradient_limit, intercept_limit, x_limit, y_limit = 5, 8, 6, 16
+
+    candidates: list[tuple[int, int, int]] = []
+    gradients = [value for value in range(-gradient_limit, gradient_limit + 1) if value]
+    for gradient in gradients:
+        for y_intercept in range(-intercept_limit, intercept_limit + 1):
+            for x_value in range(-x_limit, x_limit + 1):
+                y_value = gradient * x_value + y_intercept
+                if x_value != 0 and y_value != 0 and abs(y_value) <= y_limit:
+                    candidates.append((gradient, y_intercept, x_value))
+
+    gradient, y_intercept, x_value = rng.choice(candidates)
+    return LinearQuestionData(
+        equation=_format_linear_equation(gradient, y_intercept),
+        gradient=gradient,
+        y_intercept=y_intercept,
+        x_intercept=-y_intercept / gradient,
+        point_a=(x_value, gradient * x_value + y_intercept),
+    )
+
+
 def _enhance_data_for_question_type(
     rng: random.Random,
     data: LinearQuestionData,
@@ -264,6 +336,30 @@ def _select_range(data: LinearQuestionData, question_type: str) -> GraphRange:
         y_min = min(y_min, y_val - 1)
         y_max = max(y_max, y_val + 1)
 
+    elif question_type == "equation_from_two_points" and data.point_a and data.point_b:
+        x_values = (data.point_a[0], data.point_b[0])
+        x_min = min(0, *x_values) - 2
+        x_max = max(0, *x_values) + 2
+        y_values = (
+            data.point_a[1],
+            data.point_b[1],
+            data.gradient * x_min + data.y_intercept,
+            data.gradient * x_max + data.y_intercept,
+        )
+        y_min = min(0, *y_values) - 2
+        y_max = max(0, *y_values) + 2
+
+    elif question_type == "equation_from_gradient_and_point" and data.point_a:
+        x_value, y_value = data.point_a
+        x_min = min(0, x_value) - 2
+        x_max = max(0, x_value) + 2
+        endpoint_y_values = (
+            data.gradient * x_min + data.y_intercept,
+            data.gradient * x_max + data.y_intercept,
+        )
+        y_min = min(0, y_value, *endpoint_y_values) - 2
+        y_max = max(0, y_value, *endpoint_y_values) + 2
+
     return GraphRange(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
 
 
@@ -272,6 +368,9 @@ def build_question_text(
     equation: str | None = None,
     input_x: int | float | None = None,
     target_y: int | float | None = None,
+    gradient: int | float | None = None,
+    point_a: tuple[int | float, int | float] | None = None,
+    point_b: tuple[int | float, int | float] | None = None,
 ) -> str:
     """Build deterministic question text for a linear question type."""
     equation_text = (
@@ -286,11 +385,25 @@ def build_question_text(
         equation=_display_equation_value(equation) if equation else "",
         input_x=_format_number(input_x or 0),
         target_y=_format_number(target_y or 0),
+        gradient=_format_number(gradient or 0),
+        point_a=_format_point(point_a) if point_a else "",
+        point_b=_format_point(point_b) if point_b else "",
     )
 
 
 def _display_equation_value(equation: str) -> str:
     return equation.replace("*x", "x")
+
+
+def _format_point(point: tuple[int | float, int | float]) -> str:
+    return f"({_format_number(point[0])}; {_format_number(point[1])})"
+
+
+def _format_subtraction(first: int | float, second: int | float) -> str:
+    second_text = _format_number(second)
+    if second < 0:
+        second_text = f"({second_text})"
+    return f"{_format_number(first)} - {second_text}"
 
 
 def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
@@ -343,6 +456,49 @@ def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
             f"Using f(x) = mx + c:\n"
             f"f(x) = {equation}\n\n"
             f"Therefore, the equation is {answer}."
+        )
+
+    elif question_type == "equation_from_two_points":
+        if data.point_a is None or data.point_b is None:
+            raise ValueError("Two-point equation data is incomplete.")
+        x1, y1 = data.point_a
+        x2, y2 = data.point_b
+        delta_y = y2 - y1
+        delta_x = x2 - x1
+        equation = _display_equation(data)
+        answer = f"y = {equation}"
+        memo = (
+            f"A{_format_point(data.point_a)}\n"
+            f"B{_format_point(data.point_b)}\n\n"
+            "First determine the gradient:\n\n"
+            f"m = ({_format_subtraction(y2, y1)}) / "
+            f"({_format_subtraction(x2, x1)})\n"
+            f"m = {_format_number(delta_y)} / {_format_number(delta_x)}\n"
+            f"m = {gradient}\n\n"
+            "Use y = mx + c.\n\n"
+            f"Substitute A{_format_point(data.point_a)}:\n\n"
+            f"{_format_number(y1)} = {gradient}({_format_number(x1)}) + c\n"
+            f"c = {intercept}\n\n"
+            f"Therefore, {answer}."
+        )
+
+    elif question_type == "equation_from_gradient_and_point":
+        if data.point_a is None:
+            raise ValueError("Gradient-and-point equation data is incomplete.")
+        x_value, y_value = data.point_a
+        product = data.gradient * x_value
+        equation = _display_equation(data)
+        answer = f"y = {equation}"
+        memo = (
+            "The gradient is:\n\n"
+            f"m = {gradient}\n\n"
+            "The line passes through:\n\n"
+            f"A{_format_point(data.point_a)}\n\n"
+            "Substitute into y = mx + c:\n\n"
+            f"{_format_number(y_value)} = {gradient}({_format_number(x_value)}) + c\n"
+            f"{_format_number(y_value)} = {_format_number(product)} + c\n"
+            f"c = {intercept}\n\n"
+            f"Therefore, {answer}."
         )
 
     elif question_type == "find_f_of_x":
@@ -451,6 +607,10 @@ class LinearQuestionGenerator:
         question_type = spec.question_type
         if question_type == "intersection_of_two_lines":
             data = _generate_intersection_data(rng, difficulty)
+        elif question_type == "equation_from_two_points":
+            data = _generate_two_point_data(rng, difficulty)
+        elif question_type == "equation_from_gradient_and_point":
+            data = _generate_gradient_point_data(rng, difficulty)
         else:
             data = _generate_data(rng, difficulty)
         if question_type == "determine_equation" and data.y_intercept == 0:
@@ -463,6 +623,12 @@ class LinearQuestionGenerator:
         display = build_linear_display_settings(question_type)
         if question_type == "read_coordinate" and data.selected_point:
             display.additional_x_values = [data.selected_point[0]]
+            display.additional_point_labels = ["A"]
+        elif question_type == "equation_from_two_points" and data.point_a and data.point_b:
+            display.additional_x_values = [data.point_a[0], data.point_b[0]]
+            display.additional_point_labels = ["A", "B"]
+        elif question_type == "equation_from_gradient_and_point" and data.point_a:
+            display.additional_x_values = [data.point_a[0]]
             display.additional_point_labels = ["A"]
         is_two_line_question = question_type == "intersection_of_two_lines"
         graph_request = GraphRequest(
@@ -487,6 +653,9 @@ class LinearQuestionGenerator:
                 equation=data.equation,
                 input_x=data.input_x,
                 target_y=data.target_y,
+                gradient=data.gradient,
+                point_a=data.point_a,
+                point_b=data.point_b,
             ),
             expected_answer=answer,
             memo=memo,
@@ -514,6 +683,8 @@ class LinearQuestionGenerator:
             input_x=data.input_x,
             target_y=data.target_y,
             second_equation=data.second_equation,
+            point_a=data.point_a,
+            point_b=data.point_b,
         )
         return ai_text.question_text, ai_text.memo
 

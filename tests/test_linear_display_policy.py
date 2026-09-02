@@ -59,6 +59,34 @@ class TestLinearDisplayPolicy:
         assert display.show_title is False
         assert display.show_legend is False
 
+    def test_equation_from_two_points_shows_only_the_labelled_points(self):
+        display = build_linear_display_settings("equation_from_two_points")
+
+        assert display.show_equation is False
+        assert display.show_title is False
+        assert display.show_legend is False
+        assert display.show_x_intercepts is False
+        assert display.show_y_intercepts is False
+        assert display.show_gradient is False
+        assert display.show_gradient_triangle is False
+        assert display.show_additional_point_labels is True
+        assert display.show_grid is True
+        assert display.show_tick_labels is True
+
+    def test_equation_from_gradient_and_point_hides_solution_annotations(self):
+        display = build_linear_display_settings("equation_from_gradient_and_point")
+
+        assert display.show_equation is False
+        assert display.show_title is False
+        assert display.show_legend is False
+        assert display.show_x_intercepts is False
+        assert display.show_y_intercepts is False
+        assert display.show_gradient is False
+        assert display.show_gradient_triangle is False
+        assert display.show_additional_point_labels is True
+        assert display.show_grid is True
+        assert display.show_tick_labels is True
+
     def test_unsupported_question_type_raises(self):
         """Test that unsupported question types raise ValueError."""
         with pytest.raises(ValueError, match="Unsupported linear question type"):

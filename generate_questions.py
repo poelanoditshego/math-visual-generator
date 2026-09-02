@@ -28,6 +28,8 @@ QUESTION_TYPES = {
     "Y-intercept": "y_intercept",
     "Gradient": "gradient",
     "Determine equation": "determine_equation",
+    "Equation from two points": "equation_from_two_points",
+    "Equation from gradient and point": "equation_from_gradient_and_point",
     "Find f(x)": "find_f_of_x",
     "Find x given y": "find_x_given_y",
     "Read coordinate": "read_coordinate",

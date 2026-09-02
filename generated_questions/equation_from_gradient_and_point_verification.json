@@ -1,0 +1,307 @@
+{
+  "blueprint": {
+    "subject": "Mathematics",
+    "grade": 9,
+    "topic": "Functions",
+    "subtopic": "Linear Functions",
+    "difficulty": "Medium",
+    "marks_per_question": 4,
+    "number_of_questions": 3,
+    "question_types": [
+      "equation_from_gradient_and_point"
+    ],
+    "family": "linear"
+  },
+  "questions": [
+    {
+      "question_id": "linear_0001",
+      "question_type": "equation_from_gradient_and_point",
+      "subject": "Mathematics",
+      "grade": 9,
+      "topic": "Functions",
+      "subtopic": "Linear Functions",
+      "difficulty": "Medium",
+      "marks": 4,
+      "question_text": "A straight line has a gradient of -1 and passes through the point A(4; -10). Determine the equation of the line.",
+      "expected_answer": "y = -x - 6",
+      "memo": "The gradient is:\n\nm = -1\n\nThe line passes through:\n\nA(4; -10)\n\nSubstitute into y = mx + c:\n\n-10 = -1(4) + c\n-10 = -4 + c\nc = -6\n\nTherefore, y = -x - 6.",
+      "mathematical_data": {
+        "equation": "-x - 6",
+        "gradient": -1,
+        "y_intercept": -6,
+        "x_intercept": -6.0,
+        "function_name": "f",
+        "input_x": null,
+        "target_y": null,
+        "selected_point": null,
+        "point_a": [
+          4,
+          -10
+        ],
+        "point_b": null,
+        "second_equation": null,
+        "second_gradient": null,
+        "second_y_intercept": null,
+        "intersection_point": null
+      },
+      "graph_request": {
+        "graph_type": "Linear",
+        "equation": "-x - 6",
+        "equations": null,
+        "graph_range": {
+          "x_min": -2,
+          "x_max": 6,
+          "y_min": -14,
+          "y_max": 2
+        },
+        "display": {
+          "show_grid": true,
+          "show_axes": true,
+          "show_equation": false,
+          "show_title": false,
+          "show_legend": false,
+          "show_border": false,
+          "show_tick_marks": true,
+          "show_tick_labels": true,
+          "use_integer_unit_ticks": true,
+          "show_x_intercepts": false,
+          "show_y_intercepts": false,
+          "show_intersection_points": true,
+          "show_point_labels": true,
+          "point_label_style": "Coordinates only",
+          "axis_intercept_label_style": "Full coordinates",
+          "graph_curve_label_style": "No label",
+          "show_origin_label": true,
+          "show_graph_arrows": true,
+          "show_axis_arrows": true,
+          "show_axis_labels": true,
+          "additional_x_values": [
+            4
+          ],
+          "additional_point_labels": [
+            "A"
+          ],
+          "show_additional_point_labels": true,
+          "show_gradient": false,
+          "show_gradient_triangle": false,
+          "show_turning_point": true,
+          "show_axis_of_symmetry": true,
+          "show_vertical_asymptote": true,
+          "show_horizontal_asymptote": true,
+          "show_asymptote_labels": true,
+          "show_hyperbola_centre": true,
+          "show_stationary_points": true,
+          "show_inflection_point": true,
+          "trig_angle_mode": "Degrees",
+          "show_midline": true,
+          "show_maximum_points": true,
+          "show_minimum_points": true,
+          "show_circle_centre": true,
+          "show_radius": false,
+          "show_radius_label": true,
+          "show_diameter": false,
+          "show_diameter_label": true
+        },
+        "output_name": "linear_0001.png"
+      },
+      "graph_artifact": {
+        "image_path": "generated_graphs\\linear_df3b6fec3f5e42fa91fb5151f589dedc\\linear_0001.png",
+        "graph_type": "Linear"
+      }
+    },
+    {
+      "question_id": "linear_0002",
+      "question_type": "equation_from_gradient_and_point",
+      "subject": "Mathematics",
+      "grade": 9,
+      "topic": "Functions",
+      "subtopic": "Linear Functions",
+      "difficulty": "Medium",
+      "marks": 4,
+      "question_text": "A straight line has a gradient of 3 and passes through the point A(2; 5). Determine the equation of the line.",
+      "expected_answer": "y = 3x - 1",
+      "memo": "The gradient is:\n\nm = 3\n\nThe line passes through:\n\nA(2; 5)\n\nSubstitute into y = mx + c:\n\n5 = 3(2) + c\n5 = 6 + c\nc = -1\n\nTherefore, y = 3x - 1.",
+      "mathematical_data": {
+        "equation": "3*x - 1",
+        "gradient": 3,
+        "y_intercept": -1,
+        "x_intercept": 0.3333333333333333,
+        "function_name": "f",
+        "input_x": null,
+        "target_y": null,
+        "selected_point": null,
+        "point_a": [
+          2,
+          5
+        ],
+        "point_b": null,
+        "second_equation": null,
+        "second_gradient": null,
+        "second_y_intercept": null,
+        "intersection_point": null
+      },
+      "graph_request": {
+        "graph_type": "Linear",
+        "equation": "3*x - 1",
+        "equations": null,
+        "graph_range": {
+          "x_min": -2,
+          "x_max": 4,
+          "y_min": -9,
+          "y_max": 13
+        },
+        "display": {
+          "show_grid": true,
+          "show_axes": true,
+          "show_equation": false,
+          "show_title": false,
+          "show_legend": false,
+          "show_border": false,
+          "show_tick_marks": true,
+          "show_tick_labels": true,
+          "use_integer_unit_ticks": true,
+          "show_x_intercepts": false,
+          "show_y_intercepts": false,
+          "show_intersection_points": true,
+          "show_point_labels": true,
+          "point_label_style": "Coordinates only",
+          "axis_intercept_label_style": "Full coordinates",
+          "graph_curve_label_style": "No label",
+          "show_origin_label": true,
+          "show_graph_arrows": true,
+          "show_axis_arrows": true,
+          "show_axis_labels": true,
+          "additional_x_values": [
+            2
+          ],
+          "additional_point_labels": [
+            "A"
+          ],
+          "show_additional_point_labels": true,
+          "show_gradient": false,
+          "show_gradient_triangle": false,
+          "show_turning_point": true,
+          "show_axis_of_symmetry": true,
+          "show_vertical_asymptote": true,
+          "show_horizontal_asymptote": true,
+          "show_asymptote_labels": true,
+          "show_hyperbola_centre": true,
+          "show_stationary_points": true,
+          "show_inflection_point": true,
+          "trig_angle_mode": "Degrees",
+          "show_midline": true,
+          "show_maximum_points": true,
+          "show_minimum_points": true,
+          "show_circle_centre": true,
+          "show_radius": false,
+          "show_radius_label": true,
+          "show_diameter": false,
+          "show_diameter_label": true
+        },
+        "output_name": "linear_0002.png"
+      },
+      "graph_artifact": {
+        "image_path": "generated_graphs\\linear_df3b6fec3f5e42fa91fb5151f589dedc\\linear_0002.png",
+        "graph_type": "Linear"
+      }
+    },
+    {
+      "question_id": "linear_0003",
+      "question_type": "equation_from_gradient_and_point",
+      "subject": "Mathematics",
+      "grade": 9,
+      "topic": "Functions",
+      "subtopic": "Linear Functions",
+      "difficulty": "Medium",
+      "marks": 4,
+      "question_text": "A straight line has a gradient of 1 and passes through the point A(1; 6). Determine the equation of the line.",
+      "expected_answer": "y = x + 5",
+      "memo": "The gradient is:\n\nm = 1\n\nThe line passes through:\n\nA(1; 6)\n\nSubstitute into y = mx + c:\n\n6 = 1(1) + c\n6 = 1 + c\nc = 5\n\nTherefore, y = x + 5.",
+      "mathematical_data": {
+        "equation": "x + 5",
+        "gradient": 1,
+        "y_intercept": 5,
+        "x_intercept": -5.0,
+        "function_name": "f",
+        "input_x": null,
+        "target_y": null,
+        "selected_point": null,
+        "point_a": [
+          1,
+          6
+        ],
+        "point_b": null,
+        "second_equation": null,
+        "second_gradient": null,
+        "second_y_intercept": null,
+        "intersection_point": null
+      },
+      "graph_request": {
+        "graph_type": "Linear",
+        "equation": "x + 5",
+        "equations": null,
+        "graph_range": {
+          "x_min": -2,
+          "x_max": 3,
+          "y_min": -2,
+          "y_max": 10
+        },
+        "display": {
+          "show_grid": true,
+          "show_axes": true,
+          "show_equation": false,
+          "show_title": false,
+          "show_legend": false,
+          "show_border": false,
+          "show_tick_marks": true,
+          "show_tick_labels": true,
+          "use_integer_unit_ticks": true,
+          "show_x_intercepts": false,
+          "show_y_intercepts": false,
+          "show_intersection_points": true,
+          "show_point_labels": true,
+          "point_label_style": "Coordinates only",
+          "axis_intercept_label_style": "Full coordinates",
+          "graph_curve_label_style": "No label",
+          "show_origin_label": true,
+          "show_graph_arrows": true,
+          "show_axis_arrows": true,
+          "show_axis_labels": true,
+          "additional_x_values": [
+            1
+          ],
+          "additional_point_labels": [
+            "A"
+          ],
+          "show_additional_point_labels": true,
+          "show_gradient": false,
+          "show_gradient_triangle": false,
+          "show_turning_point": true,
+          "show_axis_of_symmetry": true,
+          "show_vertical_asymptote": true,
+          "show_horizontal_asymptote": true,
+          "show_asymptote_labels": true,
+          "show_hyperbola_centre": true,
+          "show_stationary_points": true,
+          "show_inflection_point": true,
+          "trig_angle_mode": "Degrees",
+          "show_midline": true,
+          "show_maximum_points": true,
+          "show_minimum_points": true,
+          "show_circle_centre": true,
+          "show_radius": false,
+          "show_radius_label": true,
+          "show_diameter": false,
+          "show_diameter_label": true
+        },
+        "output_name": "linear_0003.png"
+      },
+      "graph_artifact": {
+        "image_path": "generated_graphs\\linear_df3b6fec3f5e42fa91fb5151f589dedc\\linear_0003.png",
+        "graph_type": "Linear"
+      }
+    }
+  ],
+  "batch_id": "linear_df3b6fec3f5e42fa91fb5151f589dedc",
+  "created_at": "2026-09-02T19:19:21.929512+00:00"
+}

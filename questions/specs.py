@@ -94,6 +94,50 @@ LINEAR_QUESTION_SPECS: dict[str, QuestionSpec] = {
         ai_visible_information=("x-intercept", "y-intercept"),
         ai_hidden_information=("equation", "gradient"),
     ),
+    "equation_from_two_points": QuestionSpec(
+        question_type="equation_from_two_points",
+        family="linear",
+        question_template=(
+            "Points A{point_a} and B{point_b} lie on a straight line. "
+            "Determine the equation of the line passing through A and B."
+        ),
+        answer_type="equation",
+        display_overrides=_policy(
+            show_x_intercepts=False,
+            show_y_intercepts=False,
+            show_gradient=False,
+            show_gradient_triangle=False,
+            show_additional_point_labels=True,
+            show_grid=True,
+            show_tick_labels=True,
+            show_tick_marks=True,
+        ),
+        ai_visible_information=("point A", "point B"),
+        ai_hidden_information=("equation", "gradient", "y-intercept"),
+        fingerprint_fields=("canonical_point_pair",),
+    ),
+    "equation_from_gradient_and_point": QuestionSpec(
+        question_type="equation_from_gradient_and_point",
+        family="linear",
+        question_template=(
+            "A straight line has a gradient of {gradient} and passes through "
+            "the point A{point_a}. Determine the equation of the line."
+        ),
+        answer_type="equation",
+        display_overrides=_policy(
+            show_x_intercepts=False,
+            show_y_intercepts=False,
+            show_gradient=False,
+            show_gradient_triangle=False,
+            show_additional_point_labels=True,
+            show_grid=True,
+            show_tick_labels=True,
+            show_tick_marks=True,
+        ),
+        ai_visible_information=("gradient", "point A"),
+        ai_hidden_information=("equation", "y-intercept"),
+        fingerprint_fields=("gradient", "point_a"),
+    ),
     "find_f_of_x": QuestionSpec(
         question_type="find_f_of_x",
         family="linear",

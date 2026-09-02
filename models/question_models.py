@@ -10,6 +10,8 @@ SUPPORTED_LINEAR_QUESTION_TYPES = (
     "y_intercept",
     "gradient",
     "determine_equation",
+    "equation_from_two_points",
+    "equation_from_gradient_and_point",
     "find_f_of_x",
     "find_x_given_y",
     "read_coordinate",
@@ -70,6 +72,8 @@ class LinearQuestionData:
     input_x: int | float | None = None  # for find_f_of_x
     target_y: int | float | None = None  # for find_x_given_y
     selected_point: tuple[int | float, int | float] | None = None  # for read_coordinate
+    point_a: tuple[int | float, int | float] | None = None
+    point_b: tuple[int | float, int | float] | None = None
     second_equation: str | None = None
     second_gradient: int | float | None = None
     second_y_intercept: int | float | None = None
@@ -88,6 +92,13 @@ class LinearQuestionData:
                 )
             )
         )
+
+    @property
+    def canonical_point_pair(self) -> tuple[tuple[int | float, int | float], ...]:
+        """Return a point-order-independent identity for uniqueness checks."""
+        if self.point_a is None or self.point_b is None:
+            return tuple(point for point in (self.point_a, self.point_b) if point is not None)
+        return tuple(sorted((self.point_a, self.point_b)))
 
 
 @dataclass
