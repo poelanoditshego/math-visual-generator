@@ -14,6 +14,7 @@ SUPPORTED_LINEAR_QUESTION_TYPES = (
     "find_x_given_y",
     "read_coordinate",
     "increasing_or_decreasing",
+    "intersection_of_two_lines",
 )
 
 
@@ -29,8 +30,11 @@ class QuestionBlueprint:
     question_types: list[str] = field(
         default_factory=lambda: list(SUPPORTED_LINEAR_QUESTION_TYPES)
     )
+    family: str = "linear"
 
     def validate(self) -> None:
+        if not isinstance(self.family, str) or not self.family.strip():
+            raise ValueError("Question family must be a non-empty string.")
         if not isinstance(self.grade, int) or isinstance(self.grade, bool) or self.grade <= 0:
             raise ValueError("Grade must be a positive integer.")
         if (
@@ -49,10 +53,11 @@ class QuestionBlueprint:
             raise ValueError(f"Unsupported difficulty: {self.difficulty}")
         if not self.question_types:
             raise ValueError("At least one question type is required.")
-        unsupported = set(self.question_types) - set(SUPPORTED_LINEAR_QUESTION_TYPES)
-        if unsupported:
-            names = ", ".join(sorted(unsupported))
-            raise ValueError(f"Unsupported linear question type: {names}")
+        if self.family == "linear":
+            unsupported = set(self.question_types) - set(SUPPORTED_LINEAR_QUESTION_TYPES)
+            if unsupported:
+                names = ", ".join(sorted(unsupported))
+                raise ValueError(f"Unsupported linear question type: {names}")
 
 
 @dataclass(frozen=True)
@@ -65,6 +70,24 @@ class LinearQuestionData:
     input_x: int | float | None = None  # for find_f_of_x
     target_y: int | float | None = None  # for find_x_given_y
     selected_point: tuple[int | float, int | float] | None = None  # for read_coordinate
+    second_equation: str | None = None
+    second_gradient: int | float | None = None
+    second_y_intercept: int | float | None = None
+    intersection_point: tuple[int | float, int | float] | None = None
+
+    @property
+    def canonical_line_pair(self) -> tuple[tuple[int | float, int | float], ...]:
+        """Return a line-order-independent identity for uniqueness checks."""
+        if self.second_gradient is None or self.second_y_intercept is None:
+            return ((self.gradient, self.y_intercept),)
+        return tuple(
+            sorted(
+                (
+                    (self.gradient, self.y_intercept),
+                    (self.second_gradient, self.second_y_intercept),
+                )
+            )
+        )
 
 
 @dataclass
@@ -80,7 +103,7 @@ class GeneratedQuestion:
     question_text: str
     expected_answer: str
     memo: str
-    mathematical_data: LinearQuestionData
+    mathematical_data: object
     graph_request: GraphRequest
     graph_artifact: GraphArtifact
 

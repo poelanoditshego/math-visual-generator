@@ -1,104 +1,24 @@
 from __future__ import annotations
 
 import random
-import logging
-from pathlib import Path
-from uuid import uuid4
-
-from generators.api import generate_graph_from_request
 from ai.question_writer import AIQuestionText, write_linear_question
 from models.graph_request import GraphDisplaySettings, GraphRange, GraphRequest
 from models.question_models import (
-    GeneratedQuestion,
     LinearQuestionData,
     QuestionBatch,
     QuestionBlueprint,
 )
-
-logger = logging.getLogger(__name__)
+from questions.engine import (
+    QuestionCandidate,
+    generate_question_batch,
+    register_family_generator,
+)
+from questions.specs import QuestionSpec, get_question_spec
 
 
 def build_linear_display_settings(question_type: str) -> GraphDisplaySettings:
-    display = GraphDisplaySettings()
-
-    # General learner-facing style
-    display.show_title = False
-    display.show_legend = False
-    display.show_equation = False
-
-    display.show_grid = False
-    display.show_border = False
-    display.show_tick_labels = False
-    display.show_tick_marks = False
-
-    display.show_axes = True
-    display.show_axis_arrows = True
-    display.show_axis_labels = True
-    display.show_origin_label = True
-
-    if question_type == "determine_equation":
-        display.show_x_intercepts = True
-        display.show_y_intercepts = True
-
-        display.show_gradient = False
-        display.show_gradient_triangle = False
-
-    elif question_type == "x_intercept":
-        display.show_x_intercepts = False
-        display.show_y_intercepts = True
-
-    elif question_type == "y_intercept":
-        display.show_y_intercepts = False
-        display.show_x_intercepts = True
-
-    elif question_type == "gradient":
-        display.show_gradient = False
-        display.show_gradient_triangle = False
-
-        display.show_x_intercepts = True
-        display.show_y_intercepts = True
-
-    elif question_type == "find_f_of_x":
-        display.show_x_intercepts = True
-        display.show_y_intercepts = True
-
-        display.show_gradient = False
-        display.show_gradient_triangle = False
-
-    elif question_type == "find_x_given_y":
-        display.show_x_intercepts = True
-        display.show_y_intercepts = True
-
-        display.show_gradient = False
-        display.show_gradient_triangle = False
-
-    elif question_type == "read_coordinate":
-        display.show_x_intercepts = False
-        display.show_y_intercepts = False
-
-        display.show_gradient = False
-        display.show_gradient_triangle = False
-
-        display.show_additional_point_labels = True
-
-        # Needed to read point A from the axes
-        display.show_grid = True
-        display.show_tick_labels = True
-        display.show_tick_marks = True
-
-    elif question_type == "increasing_or_decreasing":
-        display.show_x_intercepts = False
-        display.show_y_intercepts = False
-
-        display.show_gradient = False
-        display.show_gradient_triangle = False
-
-    else:
-        raise ValueError(
-            f"Unsupported linear question type: {question_type}"
-        )
-
-    return display
+    """Return the registered learner-facing display policy for a Linear type."""
+    return get_question_spec(question_type, family="linear").build_display_settings()
 
 
 def _format_number(value: int | float) -> str:
@@ -155,6 +75,58 @@ def _generate_data(rng: random.Random, difficulty: str) -> LinearQuestionData:
         gradient=gradient,
         y_intercept=y_intercept,
         x_intercept=x_intercept,
+    )
+
+
+def _generate_intersection_data(
+    rng: random.Random,
+    difficulty: str,
+) -> LinearQuestionData:
+    """Construct two distinct lines through one clean integer intersection."""
+    gradient_limit = {"Easy": 2, "Medium": 4}.get(difficulty, 5)
+    gradients = [
+        value for value in range(-gradient_limit, gradient_limit + 1) if value
+    ]
+    coordinate_limit = 3 if difficulty == "Easy" else 5
+    coordinates = [
+        value for value in range(-coordinate_limit, coordinate_limit + 1) if value
+    ]
+    candidates: list[tuple[int, int, int, int, int, int]] = []
+    for intersection_x in coordinates:
+        for intersection_y in coordinates:
+            for first_index, first_gradient in enumerate(gradients):
+                for second_gradient in gradients[first_index + 1:]:
+                    first_intercept = intersection_y - first_gradient * intersection_x
+                    second_intercept = intersection_y - second_gradient * intersection_x
+                    if abs(first_intercept) <= 10 and abs(second_intercept) <= 10:
+                        candidates.append(
+                            (
+                                intersection_x,
+                                intersection_y,
+                                second_gradient,
+                                first_gradient,
+                                second_intercept,
+                                first_intercept,
+                            )
+                        )
+
+    (
+        intersection_x,
+        intersection_y,
+        first_gradient,
+        second_gradient,
+        first_intercept,
+        second_intercept,
+    ) = rng.choice(candidates)
+    return LinearQuestionData(
+        equation=_format_linear_equation(first_gradient, first_intercept),
+        gradient=first_gradient,
+        y_intercept=first_intercept,
+        x_intercept=-first_intercept / first_gradient,
+        second_equation=_format_linear_equation(second_gradient, second_intercept),
+        second_gradient=second_gradient,
+        second_y_intercept=second_intercept,
+        intersection_point=(intersection_x, intersection_y),
     )
 
 
@@ -240,6 +212,26 @@ def _select_range(data: LinearQuestionData, question_type: str) -> GraphRange:
     For new types with specific points (find_f_of_x, find_x_given_y, read_coordinate),
     ensure those points are visible with padding.
     """
+    if question_type == "intersection_of_two_lines" and data.intersection_point:
+        intersection_x, intersection_y = data.intersection_point
+        x_min = min(0, intersection_x) - 4
+        x_max = max(0, intersection_x) + 4
+        endpoints = [
+            data.gradient * x_value + data.y_intercept
+            for x_value in (x_min, x_max)
+        ]
+        if data.second_gradient is not None and data.second_y_intercept is not None:
+            endpoints.extend(
+                data.second_gradient * x_value + data.second_y_intercept
+                for x_value in (x_min, x_max)
+            )
+        return GraphRange(
+            x_min=x_min,
+            x_max=x_max,
+            y_min=min(0, intersection_y, *endpoints) - 2,
+            y_max=max(0, intersection_y, *endpoints) + 2,
+        )
+
     x_intercept = int(data.x_intercept or 0)
     x_min = min(0, x_intercept) - 3
     x_max = max(0, x_intercept) + 3
@@ -288,24 +280,13 @@ def build_question_text(
         else ""
     )
 
-    if question_type == "x_intercept":
-        return f"{equation_text}Determine the x-intercept of the graph."
-    elif question_type == "y_intercept":
-        return f"{equation_text}Determine the y-intercept of the graph."
-    elif question_type == "gradient":
-        return f"{equation_text}Determine the gradient of the graph."
-    elif question_type == "determine_equation":
-        return "Determine the equation of the linear graph shown below."
-    elif question_type == "find_f_of_x":
-        return f"The graph of f(x) = {_display_equation_value(equation)} is shown below. Determine f({_format_number(input_x)})."
-    elif question_type == "find_x_given_y":
-        return f"The graph of f(x) = {_display_equation_value(equation)} is shown below. Determine the value of x if f(x) = {_format_number(target_y)}."
-    elif question_type == "read_coordinate":
-        return "Write down the coordinates of point A."
-    elif question_type == "increasing_or_decreasing":
-        return "State whether the function shown below is increasing or decreasing."
-    else:
-        raise ValueError(f"Unsupported linear question type: {question_type}")
+    spec = get_question_spec(question_type, family="linear")
+    return spec.question_template.format(
+        equation_prefix=equation_text,
+        equation=_display_equation_value(equation) if equation else "",
+        input_x=_format_number(input_x or 0),
+        target_y=_format_number(target_y or 0),
+    )
 
 
 def _display_equation_value(equation: str) -> str:
@@ -363,6 +344,7 @@ def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
             f"f(x) = {equation}\n\n"
             f"Therefore, the equation is {answer}."
         )
+
     elif question_type == "find_f_of_x":
         input_x = _format_number(data.input_x or 0)
         answer = _format_number(data.gradient * (data.input_x or 0) + data.y_intercept)
@@ -374,6 +356,7 @@ def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
             f"f({input_x}) = {answer}\n\n"
             f"Therefore, f({input_x}) = {answer}."
         )
+
     elif question_type == "find_x_given_y":
         target_y = _format_number(data.target_y or 0)
         answer = _format_number(data.input_x or 0)
@@ -414,10 +397,129 @@ def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
                 f"Since m = {gradient} < 0, the line falls from left to right.\n\n"
                 f"Therefore, the function is decreasing."
             )
+    elif question_type == "intersection_of_two_lines":
+        if (
+            data.second_equation is None
+            or data.second_gradient is None
+            or data.second_y_intercept is None
+            or data.intersection_point is None
+        ):
+            raise ValueError("Two-line intersection data is incomplete.")
+        intersection_x, intersection_y = data.intersection_point
+        first_equation = _display_equation(data)
+        second_equation = data.second_equation.replace("*x", "x")
+        gradient_difference = data.gradient - data.second_gradient
+        intercept_difference = data.second_y_intercept - data.y_intercept
+        substitution_sign = "+" if data.y_intercept >= 0 else "-"
+        answer = (
+            f"({_format_number(intersection_x)}; "
+            f"{_format_number(intersection_y)})"
+        )
+        memo = (
+            "At the point of intersection, f(x) = g(x).\n\n"
+            f"{first_equation} = {second_equation}\n"
+            f"{_format_number(gradient_difference)}x = "
+            f"{_format_number(intercept_difference)}\n"
+            f"x = {_format_number(intersection_x)}\n\n"
+            "Substitute this value into f(x):\n"
+            f"y = {_format_number(data.gradient)}"
+            f"({_format_number(intersection_x)}) {substitution_sign} "
+            f"{_format_number(abs(data.y_intercept))}\n"
+            f"y = {_format_number(intersection_y)}\n\n"
+            f"Therefore, the point of intersection is {answer}."
+        )
     else:
         raise ValueError(f"Unsupported linear question type: {question_type}")
 
     return answer, memo
+
+
+class LinearQuestionGenerator:
+    """Linear-owned mathematics and rendering inputs for the generic engine."""
+
+    family = "linear"
+    batch_prefix = "linear"
+
+    def create_candidate(
+        self,
+        *,
+        rng: random.Random,
+        difficulty: str,
+        spec: QuestionSpec,
+        output_name: str,
+    ) -> QuestionCandidate | None:
+        question_type = spec.question_type
+        if question_type == "intersection_of_two_lines":
+            data = _generate_intersection_data(rng, difficulty)
+        else:
+            data = _generate_data(rng, difficulty)
+        if question_type == "determine_equation" and data.y_intercept == 0:
+            return None
+        data = _enhance_data_for_question_type(rng, data, question_type)
+        fingerprint = (
+            question_type,
+            *(getattr(data, field) for field in spec.fingerprint_fields),
+        )
+        display = build_linear_display_settings(question_type)
+        if question_type == "read_coordinate" and data.selected_point:
+            display.additional_x_values = [data.selected_point[0]]
+            display.additional_point_labels = ["A"]
+        is_two_line_question = question_type == "intersection_of_two_lines"
+        graph_request = GraphRequest(
+            graph_type="Mixed" if is_two_line_question else "Linear",
+            equation=None if is_two_line_question else data.equation,
+            equations=(
+                [data.equation, data.second_equation]
+                if is_two_line_question and data.second_equation
+                else None
+            ),
+            graph_range=_select_range(data, question_type),
+            display=display,
+            output_name=output_name,
+        )
+        answer, memo = build_memo(question_type, data)
+        return QuestionCandidate(
+            mathematical_data=data,
+            fingerprint=fingerprint,
+            graph_request=graph_request,
+            question_text=build_question_text(
+                question_type,
+                equation=data.equation,
+                input_x=data.input_x,
+                target_y=data.target_y,
+            ),
+            expected_answer=answer,
+            memo=memo,
+        )
+
+    def rewrite_with_ai(
+        self,
+        *,
+        blueprint: QuestionBlueprint,
+        spec: QuestionSpec,
+        candidate: QuestionCandidate,
+    ) -> tuple[str, str]:
+        data: LinearQuestionData = candidate.mathematical_data
+        ai_text: AIQuestionText = write_linear_question(
+            grade=blueprint.grade,
+            difficulty=blueprint.difficulty,
+            question_type=spec.question_type,
+            equation=data.equation,
+            expected_answer=candidate.expected_answer,
+            gradient=data.gradient,
+            x_intercept=data.x_intercept,
+            y_intercept=data.y_intercept,
+            visible_information=list(spec.ai_visible_information),
+            hidden_information=list(spec.ai_hidden_information),
+            input_x=data.input_x,
+            target_y=data.target_y,
+            second_equation=data.second_equation,
+        )
+        return ai_text.question_text, ai_text.memo
+
+
+LINEAR_QUESTION_GENERATOR = LinearQuestionGenerator()
+register_family_generator(LINEAR_QUESTION_GENERATOR)
 
 
 def generate_linear_question_batch(
@@ -426,156 +528,10 @@ def generate_linear_question_batch(
     seed: int | None = None,
     use_ai: bool = False,
 ) -> QuestionBatch:
-
-    blueprint.validate()
-    batch_id = f"linear_{uuid4().hex}"
-    batch_output_directory = Path("generated_graphs") / batch_id
-    batch_output_directory.mkdir(parents=True, exist_ok=False)
-    rng = random.Random(seed)
-    fingerprints: set = set()
-    questions: list[GeneratedQuestion] = []
-    max_attempts = blueprint.number_of_questions * 5
-    attempts = 0
-
-    while len(questions) < blueprint.number_of_questions and attempts < max_attempts:
-        attempts += 1
-        question_type = rng.choice(blueprint.question_types)
-        data = _generate_data(rng, blueprint.difficulty)
-        if question_type == "determine_equation" and data.y_intercept == 0:
-            continue
-
-        # Enhance data with type-specific fields
-        data = _enhance_data_for_question_type(rng, data, question_type)
-
-        # Create fingerprint that distinguishes all question types properly
-        if question_type == "find_f_of_x":
-            fingerprint = (question_type, data.gradient, data.y_intercept, data.input_x)
-        elif question_type == "find_x_given_y":
-            fingerprint = (question_type, data.gradient, data.y_intercept, data.target_y)
-        elif question_type == "read_coordinate":
-            fingerprint = (question_type, data.gradient, data.y_intercept, data.selected_point)
-        else:
-            fingerprint = (question_type, data.gradient, data.y_intercept)
-
-        if fingerprint in fingerprints:
-            continue
-
-        display = build_linear_display_settings(question_type)
-
-        # Add point to graph for read_coordinate questions
-        if question_type == "read_coordinate" and data.selected_point:
-            display.additional_x_values = [data.selected_point[0]]
-            display.additional_point_labels = ["A"]
-
-        request = GraphRequest(
-            graph_type="Linear",
-            equation=data.equation,
-            graph_range=_select_range(data, question_type),
-            display=display,
-            output_name=f"linear_{len(questions) + 1:04d}.png",
-        )
-
-        # Build answer and memo with type-specific parameters
-        answer, memo = build_memo(question_type, data)
-        question_id = f"linear_{len(questions) + 1:04d}"
-        question_text = build_question_text(
-            question_type,
-            equation=data.equation,
-            input_x=data.input_x,
-            target_y=data.target_y,
-        )
-
-        if use_ai:
-            # Build visible/hidden information based on question type
-            visible_information = []
-            hidden_information = []
-
-            if question_type == "x_intercept":
-                visible_information = ["equation", "y-intercept"]
-                hidden_information = ["x-intercept"]
-            elif question_type == "y_intercept":
-                visible_information = ["equation", "x-intercept"]
-                hidden_information = ["y-intercept"]
-            elif question_type == "gradient":
-                visible_information = ["equation", "x-intercept", "y-intercept"]
-                hidden_information = ["gradient"]
-            elif question_type == "determine_equation":
-                visible_information = ["x-intercept", "y-intercept"]
-                hidden_information = ["equation", "gradient"]
-            elif question_type == "find_f_of_x":
-                visible_information = ["equation", "input_x"]
-                hidden_information = ["f(x) value"]
-            elif question_type == "find_x_given_y":
-                visible_information = ["equation", "target_y"]
-                hidden_information = ["x value"]
-            elif question_type == "read_coordinate":
-                visible_information = ["point label", "graph"]
-                hidden_information = ["coordinates"]
-            elif question_type == "increasing_or_decreasing":
-                visible_information = ["graph"]
-                hidden_information = ["gradient", "equation"]
-
-            try:
-                ai_text: AIQuestionText = write_linear_question(
-                    grade=blueprint.grade,
-                    difficulty=blueprint.difficulty,
-                    question_type=question_type,
-                    equation=data.equation,
-                    expected_answer=answer,
-                    gradient=data.gradient,
-                    x_intercept=data.x_intercept,
-                    y_intercept=data.y_intercept,
-                    visible_information=visible_information,
-                    hidden_information=hidden_information,
-                    input_x=data.input_x,
-                    target_y=data.target_y,
-                )
-                question_text, memo = ai_text.question_text, ai_text.memo
-                logger.info("AI wording generated for %s", question_id)
-            except Exception as e:
-                logger.warning(
-                    "AI request failed for %s; using deterministic fallback",
-                    question_id,
-                )
-                logger.error(
-                    "AI error for %s: %s: %s",
-                    question_id,
-                    type(e).__name__,
-                    e,
-                )
-
-        artifact = generate_graph_from_request(
-            request,
-            output_directory=batch_output_directory,
-        )
-        questions.append(
-            GeneratedQuestion(
-                question_id=question_id,
-                question_type=question_type,
-                subject=blueprint.subject,
-                grade=blueprint.grade,
-                topic=blueprint.topic,
-                subtopic=blueprint.subtopic,
-                difficulty=blueprint.difficulty,
-                marks=blueprint.marks_per_question,
-                question_text=question_text,
-                expected_answer=answer,
-                memo=memo,
-                mathematical_data=data,
-                graph_request=request,
-                graph_artifact=artifact,
-            )
-        )
-        fingerprints.add(fingerprint)
-
-    if len(questions) != blueprint.number_of_questions:
-        raise ValueError(
-            f"Could not generate {blueprint.number_of_questions} unique questions; "
-            f"generated {len(questions)} after {attempts} attempts."
-        )
-
-    return QuestionBatch(
-        blueprint=blueprint,
-        questions=questions,
-        batch_id=batch_id,
+    """Backwards-compatible Linear wrapper around the generic engine."""
+    return generate_question_batch(
+        blueprint,
+        seed=seed,
+        use_ai=use_ai,
+        family_generator=LINEAR_QUESTION_GENERATOR,
     )

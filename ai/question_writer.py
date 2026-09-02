@@ -50,6 +50,9 @@ _QUESTION_TYPE_PHRASES = {
     "find_x_given_y": ("determine the value of x", "find x", "determine x"),
     "read_coordinate": ("coordinates of point", "coordinate of point", "coordinates of"),
     "increasing_or_decreasing": ("increasing or decreasing", "state whether", "classify"),
+    "intersection_of_two_lines": (
+        "point of intersection", "coordinates of the intersection", "intersect",
+    ),
 }
 
 
@@ -102,6 +105,7 @@ def _prompts(
     expected_answer: str, gradient: int | float, x_intercept: int | float | None,
     y_intercept: int | float, visible_information: list[str], hidden_information: list[str],
     input_x: int | float | None = None, target_y: int | float | None = None,
+    second_equation: str | None = None,
 ) -> tuple[str, str]:
     system_prompt = (
         "You write South African school Mathematics questions. The mathematics supplied "
@@ -123,6 +127,8 @@ def _prompts(
         payload["input_x"] = input_x
     if target_y is not None:
         payload["target_y"] = target_y
+    if second_equation is not None:
+        payload["second_equation"] = second_equation
     return system_prompt, json.dumps(payload, indent=2)
 
 
@@ -131,6 +137,7 @@ def write_linear_question(
     expected_answer: str, gradient: int | float, x_intercept: int | float | None,
     y_intercept: int | float, visible_information: list[str], hidden_information: list[str],
     input_x: int | float | None = None, target_y: int | float | None = None,
+    second_equation: str | None = None,
 ) -> AIQuestionText:
     """Generate and validate AI wording, retrying one invalid response."""
     system_prompt, user_prompt = _prompts(
@@ -138,6 +145,7 @@ def write_linear_question(
         expected_answer=expected_answer, gradient=gradient, x_intercept=x_intercept,
         y_intercept=y_intercept, visible_information=visible_information,
         hidden_information=hidden_information, input_x=input_x, target_y=target_y,
+        second_equation=second_equation,
     )
     last_error: Exception | None = None
     for _ in range(2):

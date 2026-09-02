@@ -12,7 +12,13 @@ from ai.image_question_analyzer import (
 )
 from ai.transcript_analyzer import TranscriptAnalysis, analyze_transcript
 from models.question_models import QuestionBlueprint
-from questions.linear import generate_linear_question_batch
+from questions.blueprints import (
+    build_example_question_blueprint,
+    build_image_question_blueprint,
+    build_topic_question_blueprint,
+    build_transcript_question_blueprint,
+)
+from questions.engine import generate_question_batch
 from questions.persistence import save_question_batch
 
 
@@ -26,56 +32,21 @@ QUESTION_TYPES = {
     "Find x given y": "find_x_given_y",
     "Read coordinate": "read_coordinate",
     "Increasing or decreasing": "increasing_or_decreasing",
+    "Intersection of two lines": "intersection_of_two_lines",
 }
 QUESTION_TYPE_LABELS = {internal: label for label, internal in QUESTION_TYPES.items()}
 
 
-def build_example_question_blueprint(
-    analysis: ExampleQuestionAnalysis,
+def generate_and_save_question_batch(
+    blueprint: QuestionBlueprint,
     *,
-    grade: int,
-    difficulty: str,
-    number_of_questions: int,
-) -> QuestionBlueprint:
-    """Build a deterministic-generation blueprint from AI's type classification only."""
-    return QuestionBlueprint(
-        grade=grade,
-        difficulty=difficulty,
-        number_of_questions=number_of_questions,
-        question_types=[analysis.question_type],
-    )
-
-
-def build_transcript_question_blueprint(
-    analysis: TranscriptAnalysis,
-    *,
-    grade: int,
-    difficulty: str,
-    number_of_questions: int,
-) -> QuestionBlueprint:
-    """Build a deterministic mixed-question blueprint from transcript skills only."""
-    return QuestionBlueprint(
-        grade=grade,
-        difficulty=difficulty,
-        number_of_questions=number_of_questions,
-        question_types=analysis.question_types,
-    )
-
-
-def build_image_question_blueprint(
-    analysis: ImageQuestionAnalysis,
-    *,
-    grade: int,
-    difficulty: str,
-    number_of_questions: int,
-) -> QuestionBlueprint:
-    """Build a deterministic mixed-question blueprint from image skills only."""
-    return QuestionBlueprint(
-        grade=grade,
-        difficulty=difficulty,
-        number_of_questions=number_of_questions,
-        question_types=analysis.question_types,
-    )
+    use_ai: bool = False,
+):
+    """Run the shared engine/persistence pipeline used by all four input modes."""
+    batch = generate_question_batch(blueprint, use_ai=use_ai)
+    output_path = Path("generated_questions") / f"{batch.batch_id}.json"
+    save_question_batch(batch, output_path)
+    return batch, output_path
 
 
 def show_question_generator() -> None:
@@ -140,33 +111,20 @@ def show_question_generator() -> None:
                 st.error("Please select at least one question type.")
                 return
 
-            blueprint = QuestionBlueprint(
+            blueprint = build_topic_question_blueprint(
+                [QUESTION_TYPES[label] for label in selected_labels],
                 grade=int(grade),
                 difficulty=difficulty,
                 number_of_questions=int(number_of_questions),
-                question_types=[
-                    QUESTION_TYPES[label]
-                    for label in selected_labels
-                ],
             )
 
             try:
                 with st.spinner(
                     "Generating questions and graphs..."
                 ):
-                    batch = generate_linear_question_batch(
+                    batch, output_path = generate_and_save_question_batch(
                         blueprint,
                         use_ai=use_ai,
-                    )
-
-                    output_path = (
-                        Path("generated_questions")
-                        / f"{batch.batch_id}.json"
-                    )
-
-                    save_question_batch(
-                        batch,
-                        output_path,
                     )
 
                 st.session_state[
@@ -255,9 +213,9 @@ def show_question_generator() -> None:
                         difficulty=difficulty,
                         number_of_questions=int(number_of_questions),
                     )
-                    batch = generate_linear_question_batch(blueprint, use_ai=use_ai)
-                    output_path = Path("generated_questions") / f"{batch.batch_id}.json"
-                    save_question_batch(batch, output_path)
+                    batch, output_path = generate_and_save_question_batch(
+                        blueprint, use_ai=use_ai
+                    )
                 st.session_state["latest_generated_batch"] = output_path.name
                 st.success(f"Successfully generated {len(batch.questions)} similar questions.")
                 st.write(f"Detected type: `{analysis.question_type}`")
@@ -329,9 +287,9 @@ def show_question_generator() -> None:
                         difficulty=difficulty,
                         number_of_questions=int(number_of_questions),
                     )
-                    batch = generate_linear_question_batch(blueprint, use_ai=use_ai)
-                    output_path = Path("generated_questions") / f"{batch.batch_id}.json"
-                    save_question_batch(batch, output_path)
+                    batch, output_path = generate_and_save_question_batch(
+                        blueprint, use_ai=use_ai
+                    )
                 st.session_state["latest_generated_batch"] = output_path.name
                 st.success(f"Successfully generated {len(batch.questions)} questions.")
                 st.write("Detected question types:")
@@ -424,9 +382,9 @@ def show_question_generator() -> None:
                         difficulty=difficulty,
                         number_of_questions=int(number_of_questions),
                     )
-                    batch = generate_linear_question_batch(blueprint, use_ai=use_ai)
-                    output_path = Path("generated_questions") / f"{batch.batch_id}.json"
-                    save_question_batch(batch, output_path)
+                    batch, output_path = generate_and_save_question_batch(
+                        blueprint, use_ai=use_ai
+                    )
                 st.session_state["latest_generated_batch"] = output_path.name
                 st.success(f"Successfully generated {len(batch.questions)} questions.")
                 st.write("Detected question types:")
