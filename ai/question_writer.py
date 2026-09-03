@@ -62,6 +62,9 @@ _QUESTION_TYPE_PHRASES = {
     "parallel_lines": (
         "determine the equation of g", "find the equation of g", "equation of g", "parallel to",
     ),
+    "perpendicular_lines": (
+        "determine the equation of g", "find the equation of g", "equation of g", "perpendicular to",
+    ),
 }
 
 
@@ -78,6 +81,7 @@ def _validate_response(
     visible_information: list[str],
     hidden_information: list[str],
     gradient: int | float | None = None,
+    second_gradient: int | float | None = None,
     point_a: tuple[int | float, int | float] | None = None,
     point_b: tuple[int | float, int | float] | None = None,
 ) -> AIQuestionText:
@@ -101,13 +105,15 @@ def _validate_response(
         raise ValueError("AI question_text omitted the visible equation")
     if "equation" in hidden_information and compact_equation in compact_question:
         raise ValueError("AI question_text reveals hidden equation")
-    if "gradient" in hidden_information and re.search(r"\bgradient\s*[:=]", question_text, re.I):
+    if any(item.startswith("gradient") for item in hidden_information) and re.search(
+        r"\bgradient(?:\s+of\s+\w+)?\s*(?:is|[:=])", question_text, re.I
+    ):
         raise ValueError("AI question_text reveals hidden gradient information")
-    if "y-intercept" in hidden_information and re.search(
+    if any(item.startswith("y-intercept") for item in hidden_information) and re.search(
         r"\b(?:y[- ]?intercept|c)\s*(?:is|[:=])", question_text, re.I
     ):
         raise ValueError("AI question_text reveals hidden y-intercept information")
-    if question_type in {"equation_from_two_points", "equation_from_gradient_and_point", "parallel_lines"}:
+    if question_type in {"equation_from_two_points", "equation_from_gradient_and_point", "parallel_lines", "perpendicular_lines"}:
         normalized_question = normalize_answer(question_text)
         required_points = (("a", point_a),)
         if question_type == "equation_from_two_points":
@@ -124,6 +130,21 @@ def _validate_response(
             raise ValueError("AI question_text omitted the parallel relationship")
         if compact_equation not in compact_question:
             raise ValueError("AI question_text omitted the reference line equation")
+    if question_type == "perpendicular_lines":
+        normalized_question = normalize_answer(question_text)
+        if "perpendicular" not in normalized_question:
+            raise ValueError("AI question_text omitted the perpendicular relationship")
+        if compact_equation not in compact_question:
+            raise ValueError("AI question_text omitted the reference line equation")
+        if second_gradient is None:
+            raise ValueError("Perpendicular-line question data is incomplete")
+        gradient_text = re.escape(str(second_gradient))
+        if re.search(
+            rf"(?:gradient(?:\s+of)?\s+g|m[_ ]?g)\s*(?:is|=|:)\s*{gradient_text}\b",
+            question_text,
+            re.I,
+        ):
+            raise ValueError("AI question_text reveals hidden gradient of g")
     if question_type == "equation_from_gradient_and_point":
         if gradient is None:
             raise ValueError("Gradient-and-point question data is incomplete")
@@ -153,6 +174,7 @@ def _prompts(
     y_intercept: int | float, visible_information: list[str], hidden_information: list[str],
     input_x: int | float | None = None, target_y: int | float | None = None,
     second_equation: str | None = None,
+    second_gradient: int | float | None = None,
     point_a: tuple[int | float, int | float] | None = None,
     point_b: tuple[int | float, int | float] | None = None,
 ) -> tuple[str, str]:
@@ -197,6 +219,11 @@ def _prompts(
             "Ask for the line equation of g, state that g is parallel to f(x) = {equation}, "
             "and reproduce point A exactly. Do not include the equation of g or its y-intercept."
         )
+    elif question_type == "perpendicular_lines":
+        payload["output_requirements"]["question_text"] = (
+            "Ask for the line equation of g, state that g is perpendicular to f(x) = {equation}, "
+            "and reproduce point A exactly. Do not include the equation, gradient, or y-intercept of g."
+        )
     return system_prompt, json.dumps(payload, indent=2)
 
 
@@ -206,6 +233,7 @@ def write_linear_question(
     y_intercept: int | float, visible_information: list[str], hidden_information: list[str],
     input_x: int | float | None = None, target_y: int | float | None = None,
     second_equation: str | None = None,
+    second_gradient: int | float | None = None,
     point_a: tuple[int | float, int | float] | None = None,
     point_b: tuple[int | float, int | float] | None = None,
 ) -> AIQuestionText:
@@ -216,6 +244,7 @@ def write_linear_question(
         y_intercept=y_intercept, visible_information=visible_information,
         hidden_information=hidden_information, input_x=input_x, target_y=target_y,
         second_equation=second_equation,
+        second_gradient=second_gradient,
         point_a=point_a, point_b=point_b,
     )
     last_error: Exception | None = None
@@ -227,6 +256,7 @@ def write_linear_question(
                 equation=equation, expected_answer=expected_answer,
                 visible_information=visible_information, hidden_information=hidden_information,
                 gradient=gradient,
+                second_gradient=second_gradient,
                 point_a=point_a, point_b=point_b,
             )
         except Exception as error:

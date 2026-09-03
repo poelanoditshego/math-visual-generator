@@ -244,6 +244,52 @@ def _generate_parallel_lines_data(
     )
 
 
+def _generate_perpendicular_lines_data(
+    rng: random.Random,
+    difficulty: str,
+) -> LinearQuestionData:
+    """Construct perpendicular f and g using exact integer gradients.
+
+    This first version deliberately uses m_f in {-1, 1}; their negative
+    reciprocals are integers, so no float approximation enters persistence.
+    """
+    if difficulty == "Easy":
+        intercept_limit, x_limit, y_limit = 4, 4, 8
+    elif difficulty == "Medium":
+        intercept_limit, x_limit, y_limit = 6, 5, 12
+    else:
+        intercept_limit, x_limit, y_limit = 8, 6, 16
+
+    candidates: list[tuple[int, int, int, int]] = []
+    for m_f in (-1, 1):
+        m_g = -m_f
+        for c_f in range(-intercept_limit, intercept_limit + 1):
+            for c_g in range(-intercept_limit, intercept_limit + 1):
+                for x_A in range(-x_limit, x_limit + 1):
+                    y_A = m_g * x_A + c_g
+                    intersection_x = (c_g - c_f) / (m_f - m_g)
+                    intersection_y = m_f * intersection_x + c_f
+                    if abs(y_A) <= y_limit and all(
+                        abs(value) <= y_limit
+                        for value in (intersection_x, intersection_y)
+                    ):
+                        candidates.append((m_f, c_f, c_g, x_A))
+
+    m_f, c_f, c_g, x_A = rng.choice(candidates)
+    m_g = -m_f
+    point_a = (x_A, m_g * x_A + c_g)
+    return LinearQuestionData(
+        equation=_format_linear_equation(m_f, c_f),
+        gradient=m_f,
+        y_intercept=c_f,
+        x_intercept=-c_f / m_f,
+        second_equation=_format_linear_equation(m_g, c_g),
+        second_gradient=m_g,
+        second_y_intercept=c_g,
+        point_a=point_a,
+    )
+
+
 def _enhance_data_for_question_type(
     rng: random.Random,
     data: LinearQuestionData,
@@ -402,7 +448,7 @@ def _select_range(data: LinearQuestionData, question_type: str) -> GraphRange:
         y_min = min(0, y_value, *endpoint_y_values) - 2
         y_max = max(0, y_value, *endpoint_y_values) + 2
 
-    elif question_type == "parallel_lines" and data.point_a and data.second_gradient is not None and data.second_y_intercept is not None:
+    elif question_type in {"parallel_lines", "perpendicular_lines"} and data.point_a and data.second_gradient is not None and data.second_y_intercept is not None:
         x_value, y_value = data.point_a
         x_min = min(0, x_value) - 3
         x_max = max(0, x_value) + 3
@@ -414,6 +460,15 @@ def _select_range(data: LinearQuestionData, question_type: str) -> GraphRange:
         )
         y_min = min(0, y_value, data.y_intercept, data.second_y_intercept, *endpoint_y_values) - 2
         y_max = max(0, y_value, data.y_intercept, data.second_y_intercept, *endpoint_y_values) + 2
+        if question_type == "perpendicular_lines":
+            intersection_x = (data.second_y_intercept - data.y_intercept) / (
+                data.gradient - data.second_gradient
+            )
+            intersection_y = data.gradient * intersection_x + data.y_intercept
+            x_min = min(x_min, intersection_x - 2)
+            x_max = max(x_max, intersection_x + 2)
+            y_min = min(y_min, intersection_y - 2)
+            y_max = max(y_max, intersection_y + 2)
 
     return GraphRange(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
 
@@ -582,6 +637,32 @@ def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
             f"Therefore, {answer}."
         )
 
+    elif question_type == "perpendicular_lines":
+        if (
+            data.second_equation is None or data.point_a is None
+            or data.second_gradient is None or data.second_y_intercept is None
+        ):
+            raise ValueError("Perpendicular lines equation data is incomplete.")
+        x_value, y_value = data.point_a
+        m_f_text = _format_number(data.gradient)
+        m_g_text = _format_number(data.second_gradient)
+        product = data.second_gradient * x_value
+        answer = f"g(x) = {data.second_equation.replace('*x', 'x')}"
+        memo = (
+            "The gradient of f is:\n\n"
+            f"m_f = {m_f_text}\n\n"
+            "For perpendicular lines:\n\n"
+            "m_f × m_g = -1\n\n"
+            f"{m_f_text}m_g = -1\n"
+            f"m_g = {m_g_text}\n\n"
+            f"Point A{_format_point(data.point_a)} lies on g.\n\n"
+            "Use y = mx + c:\n\n"
+            f"{_format_number(y_value)} = {m_g_text}({_format_number(x_value)}) + c\n"
+            f"{_format_number(y_value)} = {_format_number(product)} + c\n"
+            f"c = {_format_number(data.second_y_intercept)}\n\n"
+            f"Therefore, {answer}."
+        )
+
     elif question_type == "find_f_of_x":
         input_x = _format_number(data.input_x or 0)
         answer = _format_number(data.gradient * (data.input_x or 0) + data.y_intercept)
@@ -694,6 +775,8 @@ class LinearQuestionGenerator:
             data = _generate_gradient_point_data(rng, difficulty)
         elif question_type == "parallel_lines":
             data = _generate_parallel_lines_data(rng, difficulty)
+        elif question_type == "perpendicular_lines":
+            data = _generate_perpendicular_lines_data(rng, difficulty)
         else:
             data = _generate_data(rng, difficulty)
         if question_type == "determine_equation" and data.y_intercept == 0:
@@ -713,11 +796,13 @@ class LinearQuestionGenerator:
         elif question_type == "equation_from_gradient_and_point" and data.point_a:
             display.additional_x_values = [data.point_a[0]]
             display.additional_point_labels = ["A"]
-        elif question_type == "parallel_lines" and data.point_a:
+        elif question_type in {"parallel_lines", "perpendicular_lines"} and data.point_a:
             display.additional_x_values = [data.point_a[0]]
             display.additional_point_labels = ["A"]
             display.additional_point_function_indices = [1]
-        is_two_line_question = question_type in {"intersection_of_two_lines", "parallel_lines"}
+        is_two_line_question = question_type in {
+            "intersection_of_two_lines", "parallel_lines", "perpendicular_lines"
+        }
         graph_request = GraphRequest(
             graph_type="Mixed" if is_two_line_question else "Linear",
             equation=None if is_two_line_question else data.equation,
@@ -770,6 +855,7 @@ class LinearQuestionGenerator:
             input_x=data.input_x,
             target_y=data.target_y,
             second_equation=data.second_equation,
+            second_gradient=data.second_gradient,
             point_a=data.point_a,
             point_b=data.point_b,
         )

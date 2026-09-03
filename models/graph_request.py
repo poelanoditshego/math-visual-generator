@@ -64,6 +64,7 @@ class GraphDisplaySettings:
     # ``additional_point_labels`` aligns with ``additional_x_values``.
     additional_x_values: list[float] = field(default_factory=list)
     additional_point_labels: list[str] = field(default_factory=list)
+    additional_point_function_indices: list[int] = field(default_factory=list)
     show_additional_point_labels: bool = True
 
     show_gradient: bool = True
@@ -107,6 +108,16 @@ class GraphDisplaySettings:
             or not all(isinstance(label, str) and label.strip() for label in self.additional_point_labels)
         ):
             raise ValueError("Additional point labels must match the additional x-values.")
+        if self.additional_point_function_indices and (
+            len(self.additional_point_function_indices) != len(self.additional_x_values)
+            or any(
+                not isinstance(index, int) or isinstance(index, bool) or index < 0
+                for index in self.additional_point_function_indices
+            )
+        ):
+            raise ValueError(
+                "Additional point function indices must match the additional x-values."
+            )
 
 
 _OUTPUT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9 _-]+\.png$")

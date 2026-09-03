@@ -188,6 +188,7 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
         settings.axis_intercept_label_style, shared=labeler
     )
     point_registry = PointRegistry(tolerance=1e-7)
+    additional_point_labels: dict[tuple[float, float], str] = {}
     plotted_graphs: list[tuple[np.ndarray, np.ndarray, object, int]] = []
     plotted_asymptotes: set[float] = set()
     difference = expressions[0] - expressions[1]
@@ -355,6 +356,10 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
                 continue
             additional_y = finite_real_number(expression.subs(x, additional_x))
             if additional_y is not None and settings.y_min <= additional_y <= settings.y_max:
+                if index < len(settings.additional_point_labels):
+                    additional_point_labels[(float(additional_x), additional_y)] = (
+                        settings.additional_point_labels[index]
+                    )
                 point_registry.add(
                     float(additional_x),
                     additional_y,
@@ -380,6 +385,15 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
             continue
 
         ax.scatter(point.x, point.y, zorder=8)
+        explicit_label = additional_point_labels.get((point.x, point.y))
+        if explicit_label is not None:
+            ax.annotate(
+                explicit_label,
+                (point.x, point.y),
+                textcoords="offset points",
+                xytext=point.other_offset or settings.intersection_label_offset,
+            )
+            continue
         if point.is_x_intercept or point.is_y_intercept:
             if not settings.show_point_labels:
                 continue

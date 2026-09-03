@@ -36,6 +36,7 @@ QUESTION_TYPES = {
     "Increasing or decreasing": "increasing_or_decreasing",
     "Intersection of two lines": "intersection_of_two_lines",
     "Parallel lines": "parallel_lines",
+    "Perpendicular lines": "perpendicular_lines",
 }
 QUESTION_TYPE_LABELS = {internal: label for label, internal in QUESTION_TYPES.items()}
 

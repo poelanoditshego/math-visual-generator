@@ -19,6 +19,7 @@ SUPPORTED_LINEAR_QUESTION_TYPES = (
     "increasing_or_decreasing",
     "intersection_of_two_lines",
     "parallel_lines",
+    "perpendicular_lines",
 )
 
 

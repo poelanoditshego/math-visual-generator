@@ -68,6 +68,7 @@ def graph_request_to_settings(
         show_axis_labels=display.show_axis_labels,
         additional_x_values=display.additional_x_values,
         additional_point_labels=display.additional_point_labels,
+        additional_point_function_indices=display.additional_point_function_indices,
         show_additional_point_labels=display.show_additional_point_labels,
         show_gradient=display.show_gradient,
         show_gradient_triangle=display.show_gradient_triangle,
