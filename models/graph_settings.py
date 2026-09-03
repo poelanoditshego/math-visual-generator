@@ -106,6 +106,7 @@ class GraphSettings:
     # Additional coordinates
     additional_x_values: list[float] = field(default_factory=list)
     additional_point_labels: list[str] = field(default_factory=list)
+    additional_point_function_indices: list[int] = field(default_factory=list)
     show_additional_point_labels: bool = True
     additional_point_label_offset: tuple[int, int] = (8, 12)
 

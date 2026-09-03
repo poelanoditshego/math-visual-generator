@@ -35,6 +35,7 @@ QUESTION_TYPES = {
     "Read coordinate": "read_coordinate",
     "Increasing or decreasing": "increasing_or_decreasing",
     "Intersection of two lines": "intersection_of_two_lines",
+    "Parallel lines": "parallel_lines",
 }
 QUESTION_TYPE_LABELS = {internal: label for label, internal in QUESTION_TYPES.items()}
 

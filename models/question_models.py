@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from models.graph_artifact import GraphArtifact
@@ -17,6 +18,7 @@ SUPPORTED_LINEAR_QUESTION_TYPES = (
     "read_coordinate",
     "increasing_or_decreasing",
     "intersection_of_two_lines",
+    "parallel_lines",
 )
 
 

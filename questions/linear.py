@@ -202,6 +202,48 @@ def _generate_gradient_point_data(
     )
 
 
+def _generate_parallel_lines_data(
+    rng: random.Random,
+    difficulty: str,
+) -> LinearQuestionData:
+    """Construct reference line f and parallel line g with point A on g."""
+    if difficulty == "Easy":
+        gradient_limit, intercept_limit, x_limit, y_limit = 2, 4, 4, 8
+    elif difficulty == "Medium":
+        gradient_limit, intercept_limit, x_limit, y_limit = 4, 6, 5, 12
+    else:
+        gradient_limit, intercept_limit, x_limit, y_limit = 5, 8, 6, 16
+
+    candidates: list[tuple[int, int, int, int]] = []
+    gradients = [value for value in range(-gradient_limit, gradient_limit + 1) if value]
+    for gradient in gradients:
+        for c_f in range(-intercept_limit, intercept_limit + 1):
+            for c_g in range(-intercept_limit, intercept_limit + 1):
+                if c_g == c_f or abs(c_g - c_f) < 2:
+                    continue
+                for x_A in range(-x_limit, x_limit + 1):
+                    y_A = gradient * x_A + c_g
+                    if abs(y_A) <= y_limit:
+                        candidates.append((gradient, c_f, c_g, x_A))
+
+    gradient, c_f, c_g, x_A = rng.choice(candidates)
+    y_A = gradient * x_A + c_g
+    point_a = (x_A, y_A)
+    f_equation = _format_linear_equation(gradient, c_f)
+    g_equation = _format_linear_equation(gradient, c_g)
+
+    return LinearQuestionData(
+        equation=f_equation,
+        gradient=gradient,
+        y_intercept=c_f,
+        x_intercept=-c_f / gradient,
+        second_equation=g_equation,
+        second_gradient=gradient,
+        second_y_intercept=c_g,
+        point_a=point_a,
+    )
+
+
 def _enhance_data_for_question_type(
     rng: random.Random,
     data: LinearQuestionData,
@@ -360,6 +402,19 @@ def _select_range(data: LinearQuestionData, question_type: str) -> GraphRange:
         y_min = min(0, y_value, *endpoint_y_values) - 2
         y_max = max(0, y_value, *endpoint_y_values) + 2
 
+    elif question_type == "parallel_lines" and data.point_a and data.second_gradient is not None and data.second_y_intercept is not None:
+        x_value, y_value = data.point_a
+        x_min = min(0, x_value) - 3
+        x_max = max(0, x_value) + 3
+        endpoint_y_values = (
+            data.gradient * x_min + data.y_intercept,
+            data.gradient * x_max + data.y_intercept,
+            data.second_gradient * x_min + data.second_y_intercept,
+            data.second_gradient * x_max + data.second_y_intercept,
+        )
+        y_min = min(0, y_value, data.y_intercept, data.second_y_intercept, *endpoint_y_values) - 2
+        y_max = max(0, y_value, data.y_intercept, data.second_y_intercept, *endpoint_y_values) + 2
+
     return GraphRange(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max)
 
 
@@ -501,6 +556,32 @@ def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
             f"Therefore, {answer}."
         )
 
+    elif question_type == "parallel_lines":
+        if (
+            data.second_equation is None
+            or data.point_a is None
+            or data.second_gradient is None
+            or data.second_y_intercept is None
+        ):
+            raise ValueError("Parallel lines equation data is incomplete.")
+        x_value, y_value = data.point_a
+        gradient_text = _format_number(data.second_gradient)
+        c_g_text = _format_number(data.second_y_intercept)
+        product = data.second_gradient * x_value
+        g_display = data.second_equation.replace("*x", "x")
+        answer = f"g(x) = {g_display}"
+        memo = (
+            "Parallel lines have equal gradients.\n\n"
+            f"The gradient of f is m = {gradient_text}.\n"
+            f"Therefore, the gradient of g is also m = {gradient_text}.\n\n"
+            f"Point A{_format_point(data.point_a)} lies on g.\n\n"
+            "Substitute into y = mx + c:\n\n"
+            f"{_format_number(y_value)} = {gradient_text}({_format_number(x_value)}) + c\n"
+            f"{_format_number(y_value)} = {_format_number(product)} + c\n"
+            f"c = {c_g_text}\n\n"
+            f"Therefore, {answer}."
+        )
+
     elif question_type == "find_f_of_x":
         input_x = _format_number(data.input_x or 0)
         answer = _format_number(data.gradient * (data.input_x or 0) + data.y_intercept)
@@ -611,6 +692,8 @@ class LinearQuestionGenerator:
             data = _generate_two_point_data(rng, difficulty)
         elif question_type == "equation_from_gradient_and_point":
             data = _generate_gradient_point_data(rng, difficulty)
+        elif question_type == "parallel_lines":
+            data = _generate_parallel_lines_data(rng, difficulty)
         else:
             data = _generate_data(rng, difficulty)
         if question_type == "determine_equation" and data.y_intercept == 0:
@@ -630,7 +713,11 @@ class LinearQuestionGenerator:
         elif question_type == "equation_from_gradient_and_point" and data.point_a:
             display.additional_x_values = [data.point_a[0]]
             display.additional_point_labels = ["A"]
-        is_two_line_question = question_type == "intersection_of_two_lines"
+        elif question_type == "parallel_lines" and data.point_a:
+            display.additional_x_values = [data.point_a[0]]
+            display.additional_point_labels = ["A"]
+            display.additional_point_function_indices = [1]
+        is_two_line_question = question_type in {"intersection_of_two_lines", "parallel_lines"}
         graph_request = GraphRequest(
             graph_type="Mixed" if is_two_line_question else "Linear",
             equation=None if is_two_line_question else data.equation,

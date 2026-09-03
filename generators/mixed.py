@@ -328,7 +328,13 @@ def create_mixed_graph(equations: list[str], settings: GraphSettings) -> None:
                         bbox=annotation_box(settings), zorder=9,
                     )
 
-        for additional_x in settings.additional_x_values:
+        for index, additional_x in enumerate(settings.additional_x_values):
+            if (
+                settings.additional_point_function_indices
+                and index < len(settings.additional_point_function_indices)
+                and settings.additional_point_function_indices[index] != function_index
+            ):
+                continue
             if not np.isfinite(additional_x) or not settings.x_min <= additional_x <= settings.x_max:
                 continue
             if (

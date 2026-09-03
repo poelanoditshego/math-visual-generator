@@ -59,6 +59,9 @@ _QUESTION_TYPE_PHRASES = {
     "intersection_of_two_lines": (
         "point of intersection", "coordinates of the intersection", "intersect",
     ),
+    "parallel_lines": (
+        "determine the equation of g", "find the equation of g", "equation of g", "parallel to",
+    ),
 }
 
 
@@ -104,7 +107,7 @@ def _validate_response(
         r"\b(?:y[- ]?intercept|c)\s*(?:is|[:=])", question_text, re.I
     ):
         raise ValueError("AI question_text reveals hidden y-intercept information")
-    if question_type in {"equation_from_two_points", "equation_from_gradient_and_point"}:
+    if question_type in {"equation_from_two_points", "equation_from_gradient_and_point", "parallel_lines"}:
         normalized_question = normalize_answer(question_text)
         required_points = (("a", point_a),)
         if question_type == "equation_from_two_points":
@@ -115,6 +118,12 @@ def _validate_response(
             point_text = normalize_answer(f"{label}({point[0]};{point[1]})")
             if point_text not in normalized_question:
                 raise ValueError("AI question_text altered or omitted a supplied point")
+    if question_type == "parallel_lines":
+        normalized_question = normalize_answer(question_text)
+        if "parallel" not in normalized_question:
+            raise ValueError("AI question_text omitted the parallel relationship")
+        if compact_equation not in compact_question:
+            raise ValueError("AI question_text omitted the reference line equation")
     if question_type == "equation_from_gradient_and_point":
         if gradient is None:
             raise ValueError("Gradient-and-point question data is incomplete")
@@ -182,6 +191,11 @@ def _prompts(
         payload["output_requirements"]["question_text"] = (
             "Ask for the line equation and reproduce the gradient and point A exactly. "
             "Do not include the equation or y-intercept."
+        )
+    elif question_type == "parallel_lines":
+        payload["output_requirements"]["question_text"] = (
+            "Ask for the line equation of g, state that g is parallel to f(x) = {equation}, "
+            "and reproduce point A exactly. Do not include the equation of g or its y-intercept."
         )
     return system_prompt, json.dumps(payload, indent=2)
 

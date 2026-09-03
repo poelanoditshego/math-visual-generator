@@ -232,6 +232,31 @@ LINEAR_QUESTION_SPECS: dict[str, QuestionSpec] = {
         ai_hidden_information=("intersection coordinates",),
         fingerprint_fields=("canonical_line_pair", "intersection_point"),
     ),
+    "parallel_lines": QuestionSpec(
+        question_type="parallel_lines",
+        family="linear",
+        question_template=(
+            "A straight line g is parallel to f(x) = {equation} and passes through "
+            "the point A{point_a}. Determine the equation of g."
+        ),
+        answer_type="equation",
+        display_overrides=_policy(
+            show_x_intercepts=False,
+            show_y_intercepts=False,
+            show_intersection_points=False,
+            show_point_labels=True,
+            show_additional_point_labels=True,
+            show_grid=True,
+            show_tick_labels=True,
+            show_tick_marks=True,
+            show_gradient=False,
+            show_gradient_triangle=False,
+            graph_curve_label_style="Function name only",
+        ),
+        ai_visible_information=("reference equation", "point A", "parallel relationship"),
+        ai_hidden_information=("equation of g", "y-intercept of g"),
+        fingerprint_fields=("equation", "second_equation", "point_a"),
+    ),
 }
 
 QUESTION_SPECS: Mapping[tuple[str, str], QuestionSpec] = MappingProxyType(
