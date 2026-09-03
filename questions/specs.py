@@ -22,6 +22,8 @@ class QuestionSpec:
     ai_hidden_information: tuple[str, ...]
     fingerprint_fields: tuple[str, ...] = ("gradient", "y_intercept")
     requires_graph: bool = True
+    graph_role: str = "question"
+
 
     def build_display_settings(self) -> GraphDisplaySettings:
         """Create a fresh display policy so callers may add dynamic point data."""
@@ -277,7 +279,26 @@ LINEAR_QUESTION_SPECS: dict[str, QuestionSpec] = {
         ai_hidden_information=("equation of g", "y-intercept of g", "gradient of g"),
         fingerprint_fields=("equation", "second_equation", "point_a"),
     ),
+    "draw_linear_graph": QuestionSpec(
+        question_type="draw_linear_graph",
+        family="linear",
+        question_template="Draw the graph of f(x) = {equation}.",
+        answer_type="graph",
+        display_overrides=_policy(
+            show_x_intercepts=True,
+            show_y_intercepts=True,
+            show_grid=True,
+            show_tick_labels=True,
+            show_tick_marks=True,
+            show_gradient=False,
+            show_gradient_triangle=False,
+        ),
+        ai_visible_information=("equation",),
+        ai_hidden_information=("x-intercept", "y-intercept", "gradient"),
+        graph_role="memo",
+    ),
 }
+
 
 QUESTION_SPECS: Mapping[tuple[str, str], QuestionSpec] = MappingProxyType(
     {(spec.family, spec.question_type): spec for spec in LINEAR_QUESTION_SPECS.values()}

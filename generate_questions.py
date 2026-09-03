@@ -37,7 +37,9 @@ QUESTION_TYPES = {
     "Intersection of two lines": "intersection_of_two_lines",
     "Parallel lines": "parallel_lines",
     "Perpendicular lines": "perpendicular_lines",
+    "Draw linear graph": "draw_linear_graph",
 }
+
 QUESTION_TYPE_LABELS = {internal: label for label, internal in QUESTION_TYPES.items()}
 
 

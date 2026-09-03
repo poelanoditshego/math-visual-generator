@@ -96,37 +96,59 @@ def display_question(question: dict, question_index: int, total_questions: int) 
     
     st.divider()
     
+    graph_role = question.get(
+        "graph_role",
+        "memo" if question.get("question_type") == "draw_linear_graph" else "question",
+    )
+
     # Main question display (left) and graph (right)
     left_col, right_col = st.columns([1, 1])
-    
+
     with left_col:
         st.markdown("### Question")
         st.markdown(f"**{question.get('question_text', 'N/A')}**")
-        
+
         # Answer expander
         with st.expander("Show Answer"):
             st.code(question.get("expected_answer", "N/A"))
-        
+
         # Memo expander
         with st.expander("Show Memo"):
             st.text(question.get("memo", "N/A"))
-    
+            if graph_role == "memo":
+                st.markdown("#### Solution Graph")
+                graph_artifact = question.get("graph_artifact", {})
+                image_path_str = graph_artifact.get("image_path", "")
+                if image_path_str:
+                    image_path = resolve_graph_path(image_path_str)
+                    if image_path.exists():
+                        st.image(str(image_path), use_container_width=True)
+                    else:
+                        st.warning(f"⚠️ Solution graph image not found:\n`{image_path}`")
+
     with right_col:
-        st.markdown("### Graph")
-        
+        if graph_role == "memo":
+            st.markdown("### Solution Graph (Memo Only)")
+            st.info(
+                "ℹ️ This graph is for the memo/solution only and is NOT shown to the learner in the question."
+            )
+        else:
+            st.markdown("### Graph")
+
         # Try to load and display the graph
         graph_artifact = question.get("graph_artifact", {})
         image_path_str = graph_artifact.get("image_path", "")
-        
+
         if image_path_str:
             image_path = resolve_graph_path(image_path_str)
-            
+
             if image_path.exists():
                 st.image(str(image_path), use_container_width=True)
             else:
                 st.warning(f"⚠️ Graph image not found:\n`{image_path}`")
         else:
             st.warning("⚠️ No graph path found in question data")
+
     
     st.divider()
     

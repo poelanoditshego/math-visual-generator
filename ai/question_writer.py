@@ -25,8 +25,9 @@ def _contains_verified_answer(text: str, expected_answer: str, question_type: st
     """Reject answer disclosure without mistaking visible equation data for an answer."""
     normalized_text = normalize_answer(text)
     normalized_answer = normalize_answer(expected_answer)
-    if question_type == "gradient":
+    if question_type in {"gradient", "draw_linear_graph"}:
         return False
+
     if question_type == "increasing_or_decreasing":
         answer = expected_answer.lower()
         return bool(re.search(rf"\b(?:is|is\s+shown\s+as)\s+{answer}\b", text.lower()))
@@ -65,7 +66,11 @@ _QUESTION_TYPE_PHRASES = {
     "perpendicular_lines": (
         "determine the equation of g", "find the equation of g", "equation of g", "perpendicular to",
     ),
+    "draw_linear_graph": (
+        "draw the graph", "sketch the graph", "plot the graph", "draw the line", "sketch the line",
+    ),
 }
+
 
 
 def _compact_equation(value: str) -> str:
@@ -113,6 +118,11 @@ def _validate_response(
         r"\b(?:y[- ]?intercept|c)\s*(?:is|[:=])", question_text, re.I
     ):
         raise ValueError("AI question_text reveals hidden y-intercept information")
+    if any(item.startswith("x-intercept") for item in hidden_information) and re.search(
+        r"\b(?:x[- ]?intercept)\s*(?:is|[:=])", question_text, re.I
+    ):
+        raise ValueError("AI question_text reveals hidden x-intercept information")
+
     if question_type in {"equation_from_two_points", "equation_from_gradient_and_point", "parallel_lines", "perpendicular_lines"}:
         normalized_question = normalize_answer(question_text)
         required_points = (("a", point_a),)
@@ -224,6 +234,13 @@ def _prompts(
             "Ask for the line equation of g, state that g is perpendicular to f(x) = {equation}, "
             "and reproduce point A exactly. Do not include the equation, gradient, or y-intercept of g."
         )
+    elif question_type == "draw_linear_graph":
+        payload["output_requirements"]["question_text"] = (
+            "Ask the learner to draw or sketch the graph of f(x) = {equation}. "
+            "Include the equation only. Do not reveal the gradient, x-intercept, "
+            "y-intercept, or plotting coordinates."
+        )
+
     return system_prompt, json.dumps(payload, indent=2)
 
 

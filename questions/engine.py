@@ -159,8 +159,10 @@ def generate_question_batch(
                 mathematical_data=candidate.mathematical_data,
                 graph_request=candidate.graph_request,
                 graph_artifact=artifact,
+                graph_role=spec.graph_role,
             )
         )
+
         fingerprints.add(candidate.fingerprint)
 
     if len(questions) != blueprint.number_of_questions:

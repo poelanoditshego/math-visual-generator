@@ -20,7 +20,9 @@ SUPPORTED_LINEAR_QUESTION_TYPES = (
     "intersection_of_two_lines",
     "parallel_lines",
     "perpendicular_lines",
+    "draw_linear_graph",
 )
+
 
 
 @dataclass
@@ -120,6 +122,7 @@ class GeneratedQuestion:
     mathematical_data: object
     graph_request: GraphRequest
     graph_artifact: GraphArtifact
+    graph_role: str = "question"
 
 
 @dataclass

@@ -61,6 +61,48 @@ def _candidate_parameters(difficulty: str) -> list[tuple[int, int, int]]:
     for gradient in gradients:
         for x_intercept in roots:
             y_intercept = -gradient * x_intercept
+
+
+def _format_number(value: int | float) -> str:
+    value = float(value)
+    if value.is_integer():
+        return str(int(value))
+    return f"{value:g}"
+
+
+def _format_linear_equation(gradient: int, y_intercept: int) -> str:
+    if gradient == 1:
+        gradient_text = "x"
+    elif gradient == -1:
+        gradient_text = "-x"
+    else:
+        gradient_text = f"{gradient}*x"
+    if y_intercept == 0:
+        return gradient_text
+    sign = "+" if y_intercept > 0 else "-"
+    return f"{gradient_text} {sign} {abs(y_intercept)}"
+
+
+def _display_equation(data: LinearQuestionData) -> str:
+    equation = data.equation.replace("*x", "x")
+    return equation.replace(" + ", " + ").replace(" - ", " - ")
+
+
+def _candidate_parameters(difficulty: str) -> list[tuple[int, int, int]]:
+    if difficulty == "Easy":
+        gradients = [-2, -1, 1, 2]
+        roots = range(-5, 6)
+    elif difficulty == "Medium":
+        gradients = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
+        roots = range(-5, 6)
+    else:
+        gradients = [-5, -4, -3, -2, -1, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
+        roots = range(-8, 9)
+
+    candidates = []
+    for gradient in gradients:
+        for x_intercept in roots:
+            y_intercept = -gradient * x_intercept
             if -10 <= y_intercept <= 10:
                 candidates.append((gradient, y_intercept, x_intercept))
     return candidates
@@ -76,6 +118,41 @@ def _generate_data(rng: random.Random, difficulty: str) -> LinearQuestionData:
         y_intercept=y_intercept,
         x_intercept=x_intercept,
     )
+
+
+def _generate_draw_graph_data(
+    rng: random.Random,
+    difficulty: str,
+) -> LinearQuestionData:
+    """Generate simple linear equation f(x) = mx + c with integer intercepts."""
+    if difficulty == "Easy":
+        gradients = [-2, -1, 1, 2]
+        roots = [-4, -3, -2, -1, 1, 2, 3, 4]
+        max_c = 6
+    elif difficulty == "Medium":
+        gradients = [-4, -3, -2, -1, 1, 2, 3, 4]
+        roots = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
+        max_c = 8
+    else:  # Hard
+        gradients = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
+        roots = [-6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6]
+        max_c = 10
+
+    candidates = []
+    for gradient in gradients:
+        for x0 in roots:
+            y_intercept = -gradient * x0
+            if 0 < abs(y_intercept) <= max_c:
+                candidates.append((gradient, y_intercept, x0))
+
+    gradient, y_intercept, x_intercept = rng.choice(candidates)
+    return LinearQuestionData(
+        equation=_format_linear_equation(gradient, y_intercept),
+        gradient=gradient,
+        y_intercept=y_intercept,
+        x_intercept=x_intercept,
+    )
+
 
 
 def _generate_intersection_data(
@@ -746,8 +823,27 @@ def build_memo(question_type: str, data: LinearQuestionData) -> tuple[str, str]:
             f"y = {_format_number(intersection_y)}\n\n"
             f"Therefore, the point of intersection is {answer}."
         )
+    elif question_type == "draw_linear_graph":
+        eq_str = _display_equation(data)
+        answer = f"Graph of f(x) = {eq_str}"
+        x_int_str = _format_number(data.x_intercept or 0)
+        y_int_str = intercept
+        grad_str = gradient
+        memo = (
+            f"To draw the graph of f(x) = {eq_str}:\n\n"
+            f"1. Identify the y-intercept (where x = 0):\n"
+            f"   (0; {y_int_str})\n\n"
+            f"2. Identify the x-intercept (where y = 0):\n"
+            f"   0 = {eq_str}\n"
+            f"   x = {x_int_str} → ({x_int_str}; 0)\n\n"
+            f"3. Gradient:\n"
+            f"   m = {grad_str}\n\n"
+            f"Plot the intercepts (0; {y_int_str}) and ({x_int_str}; 0), "
+            f"and draw a straight line passing through both points."
+        )
     else:
         raise ValueError(f"Unsupported linear question type: {question_type}")
+
 
     return answer, memo
 
@@ -777,8 +873,11 @@ class LinearQuestionGenerator:
             data = _generate_parallel_lines_data(rng, difficulty)
         elif question_type == "perpendicular_lines":
             data = _generate_perpendicular_lines_data(rng, difficulty)
+        elif question_type == "draw_linear_graph":
+            data = _generate_draw_graph_data(rng, difficulty)
         else:
             data = _generate_data(rng, difficulty)
+
         if question_type == "determine_equation" and data.y_intercept == 0:
             return None
         data = _enhance_data_for_question_type(rng, data, question_type)
